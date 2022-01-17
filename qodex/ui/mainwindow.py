@@ -3,100 +3,139 @@
 ################################################################################
 ## Form generated from reading UI file 'mainwindow.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.1.0
+## Created by: Qt User Interface Compiler version 6.1.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide6.QtCore import *
-from PySide6.QtGui import *
-from PySide6.QtWidgets import *
+from PySide6.QtCore import *  # type: ignore
+from PySide6.QtGui import *  # type: ignore
+from PySide6.QtWidgets import *  # type: ignore
 
 
-class Ui_Qodex(object):
-    def setupUi(self, Qodex):
-        if not Qodex.objectName():
-            Qodex.setObjectName(u"Qodex")
-        Qodex.resize(1046, 635)
-        self.action_add_shelf = QAction(Qodex)
+class Ui_QodexMain(object):
+    def setupUi(self, QodexMain):
+        if not QodexMain.objectName():
+            QodexMain.setObjectName(u"QodexMain")
+        QodexMain.resize(1012, 947)
+        self.actionAdd_shelf = QAction(QodexMain)
+        self.actionAdd_shelf.setObjectName(u"actionAdd_shelf")
+        self.actionAdd_document = QAction(QodexMain)
+        self.actionAdd_document.setObjectName(u"actionAdd_document")
+        self.action_add_shelf = QAction(QodexMain)
         self.action_add_shelf.setObjectName(u"action_add_shelf")
-        self.action_add_document = QAction(Qodex)
+        self.action_add_document = QAction(QodexMain)
         self.action_add_document.setObjectName(u"action_add_document")
-        self.action_add_author = QAction(Qodex)
+        self.action_add_author = QAction(QodexMain)
         self.action_add_author.setObjectName(u"action_add_author")
-        self.action_add_category = QAction(Qodex)
+        self.action_add_category = QAction(QodexMain)
         self.action_add_category.setObjectName(u"action_add_category")
-        self.centralwidget = QWidget(Qodex)
+        self.centralwidget = QWidget(QodexMain)
         self.centralwidget.setObjectName(u"centralwidget")
-        self.gridLayout = QGridLayout(self.centralwidget)
-        self.gridLayout.setObjectName(u"gridLayout")
-        self.treeView = QTreeView(self.centralwidget)
-        self.treeView.setObjectName(u"treeView")
-        sizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.treeView.sizePolicy().hasHeightForWidth())
-        self.treeView.setSizePolicy(sizePolicy)
+        self.horizontalLayout = QHBoxLayout(self.centralwidget)
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.main_tab_view = QTabWidget(self.centralwidget)
+        self.main_tab_view.setObjectName(u"main_tab_view")
+        self.shelf_tab = QWidget()
+        self.shelf_tab.setObjectName(u"shelf_tab")
+        self.verticalLayout = QVBoxLayout(self.shelf_tab)
+        self.verticalLayout.setObjectName(u"verticalLayout")
+        self.shelf_view = QTableView(self.shelf_tab)
+        self.shelf_view.setObjectName(u"shelf_view")
 
-        self.gridLayout.addWidget(self.treeView, 0, 0, 1, 1)
+        self.verticalLayout.addWidget(self.shelf_view)
 
-        self.frame = QFrame(self.centralwidget)
-        self.frame.setObjectName(u"frame")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        sizePolicy1.setHorizontalStretch(0)
-        sizePolicy1.setVerticalStretch(0)
-        sizePolicy1.setHeightForWidth(self.frame.sizePolicy().hasHeightForWidth())
-        self.frame.setSizePolicy(sizePolicy1)
-        self.frame.setFrameShape(QFrame.StyledPanel)
-        self.frame.setFrameShadow(QFrame.Raised)
+        self.main_tab_view.addTab(self.shelf_tab, "")
+        self.documents_tab = QWidget()
+        self.documents_tab.setObjectName(u"documents_tab")
+        self.horizontalLayout_2 = QHBoxLayout(self.documents_tab)
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.documents_view = QTableView(self.documents_tab)
+        self.documents_view.setObjectName(u"documents_view")
 
-        self.gridLayout.addWidget(self.frame, 0, 1, 1, 1)
+        self.horizontalLayout_2.addWidget(self.documents_view)
 
-        self.tabWidget = QTabWidget(self.centralwidget)
-        self.tabWidget.setObjectName(u"tabWidget")
-        self.tab = QWidget()
-        self.tab.setObjectName(u"tab")
-        self.tabWidget.addTab(self.tab, "")
-        self.tab_2 = QWidget()
-        self.tab_2.setObjectName(u"tab_2")
-        self.tabWidget.addTab(self.tab_2, "")
+        self.main_tab_view.addTab(self.documents_tab, "")
+        self.authors_tab = QWidget()
+        self.authors_tab.setObjectName(u"authors_tab")
+        self.horizontalLayout_3 = QHBoxLayout(self.authors_tab)
+        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
+        self.authors_view = QTableView(self.authors_tab)
+        self.authors_view.setObjectName(u"authors_view")
+        self.authors_view.horizontalHeader().setCascadingSectionResizes(False)
+        self.authors_view.horizontalHeader().setStretchLastSection(False)
 
-        self.gridLayout.addWidget(self.tabWidget, 0, 2, 1, 1)
+        self.horizontalLayout_3.addWidget(self.authors_view)
 
-        Qodex.setCentralWidget(self.centralwidget)
-        self.menubar = QMenuBar(Qodex)
+        self.main_tab_view.addTab(self.authors_tab, "")
+        self.categories_tab = QWidget()
+        self.categories_tab.setObjectName(u"categories_tab")
+        self.horizontalLayout_4 = QHBoxLayout(self.categories_tab)
+        self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
+        self.categories_view = QTreeView(self.categories_tab)
+        self.categories_view.setObjectName(u"categories_view")
+
+        self.horizontalLayout_4.addWidget(self.categories_view)
+
+        self.main_tab_view.addTab(self.categories_tab, "")
+
+        self.horizontalLayout.addWidget(self.main_tab_view)
+
+        self.verticalSpacer = QSpacerItem(20, 880, QSizePolicy.Minimum, QSizePolicy.Expanding)
+
+        self.horizontalLayout.addItem(self.verticalSpacer)
+
+        self.properties_scroll = QScrollArea(self.centralwidget)
+        self.properties_scroll.setObjectName(u"properties_scroll")
+        self.properties_scroll.setWidgetResizable(True)
+        self.scrollAreaWidgetContents = QWidget()
+        self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 477, 881))
+        self.properties_scroll.setWidget(self.scrollAreaWidgetContents)
+
+        self.horizontalLayout.addWidget(self.properties_scroll)
+
+        QodexMain.setCentralWidget(self.centralwidget)
+        self.menubar = QMenuBar(QodexMain)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 1046, 22))
+        self.menubar.setGeometry(QRect(0, 0, 1012, 24))
         self.menuFile = QMenu(self.menubar)
         self.menuFile.setObjectName(u"menuFile")
-        self.menuNew_3 = QMenu(self.menuFile)
-        self.menuNew_3.setObjectName(u"menuNew_3")
-        Qodex.setMenuBar(self.menubar)
-        self.statusbar = QStatusBar(Qodex)
+        self.menuNew = QMenu(self.menuFile)
+        self.menuNew.setObjectName(u"menuNew")
+        QodexMain.setMenuBar(self.menubar)
+        self.statusbar = QStatusBar(QodexMain)
         self.statusbar.setObjectName(u"statusbar")
-        Qodex.setStatusBar(self.statusbar)
+        QodexMain.setStatusBar(self.statusbar)
 
         self.menubar.addAction(self.menuFile.menuAction())
-        self.menuFile.addAction(self.menuNew_3.menuAction())
-        self.menuNew_3.addAction(self.action_add_shelf)
-        self.menuNew_3.addAction(self.action_add_document)
-        self.menuNew_3.addAction(self.action_add_author)
-        self.menuNew_3.addAction(self.action_add_category)
+        self.menuFile.addAction(self.menuNew.menuAction())
+        self.menuNew.addAction(self.action_add_shelf)
+        self.menuNew.addAction(self.action_add_document)
+        self.menuNew.addAction(self.action_add_author)
+        self.menuNew.addAction(self.action_add_category)
 
-        self.retranslateUi(Qodex)
+        self.retranslateUi(QodexMain)
 
-        QMetaObject.connectSlotsByName(Qodex)
+        self.main_tab_view.setCurrentIndex(0)
+
+
+        QMetaObject.connectSlotsByName(QodexMain)
     # setupUi
 
-    def retranslateUi(self, Qodex):
-        Qodex.setWindowTitle(QCoreApplication.translate("Qodex", u"Qodex", None))
-        self.action_add_shelf.setText(QCoreApplication.translate("Qodex", u"Shelf", None))
-        self.action_add_document.setText(QCoreApplication.translate("Qodex", u"Document", None))
-        self.action_add_author.setText(QCoreApplication.translate("Qodex", u"Author", None))
-        self.action_add_category.setText(QCoreApplication.translate("Qodex", u"Category", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("Qodex", u"Tab 1", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("Qodex", u"Tab 2", None))
-        self.menuFile.setTitle(QCoreApplication.translate("Qodex", u"File", None))
-        self.menuNew_3.setTitle(QCoreApplication.translate("Qodex", u"New", None))
+    def retranslateUi(self, QodexMain):
+        QodexMain.setWindowTitle(QCoreApplication.translate("QodexMain", u"MainWindow", None))
+        self.actionAdd_shelf.setText(QCoreApplication.translate("QodexMain", u"Add shelf", None))
+        self.actionAdd_document.setText(QCoreApplication.translate("QodexMain", u"Add document", None))
+        self.action_add_shelf.setText(QCoreApplication.translate("QodexMain", u"Shelf", None))
+        self.action_add_document.setText(QCoreApplication.translate("QodexMain", u"Document", None))
+        self.action_add_author.setText(QCoreApplication.translate("QodexMain", u"Author", None))
+        self.action_add_category.setText(QCoreApplication.translate("QodexMain", u"Category", None))
+        self.main_tab_view.setTabText(self.main_tab_view.indexOf(self.shelf_tab), QCoreApplication.translate("QodexMain", u"Shelves", None))
+        self.main_tab_view.setTabText(self.main_tab_view.indexOf(self.documents_tab), QCoreApplication.translate("QodexMain", u"Documents", None))
+        self.main_tab_view.setTabText(self.main_tab_view.indexOf(self.authors_tab), QCoreApplication.translate("QodexMain", u"Authors", None))
+        self.main_tab_view.setTabText(self.main_tab_view.indexOf(self.categories_tab), QCoreApplication.translate("QodexMain", u"Categories", None))
+        self.menuFile.setTitle(QCoreApplication.translate("QodexMain", u"File", None))
+        self.menuNew.setTitle(QCoreApplication.translate("QodexMain", u"New", None))
     # retranslateUi
 

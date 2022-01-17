@@ -11,7 +11,7 @@ from logging import getLogger
 from PySide6 import QtWidgets, QtCore, QtGui, Qt
 from PySide6.QtUiTools import QUiLoader
 
-from ui.mainwindow import Ui_Qodex
+from ui.mainwindow import Ui_QodexMain
 
 from qodex.db import models
 from qodex.db.utils import get_or_create
@@ -30,7 +30,7 @@ logger = getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class MainWindow(QtWidgets.QMainWindow, Ui_Qodex):
+class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
 
     def __init__(self):
         super().__init__()
@@ -49,31 +49,53 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Qodex):
         self.tree_root = self.tree_model.invisibleRootItem()
         self.tree_model.setHorizontalHeaderLabels(['Library'])
 
-        self.docs_root = QtGui.QStandardItem('Documents')
-        self.authors_root = QtGui.QStandardItem('Authors')
-        self.categories_root = QtGui.QStandardItem('Categories')
-        self.shelves_root = QtGui.QStandardItem('Shelves')
+        self.shelf_model = QtGui.QStandardItemModel()
+        self.shelf_model.setHorizontalHeaderLabels(ShelfItem.labels)
 
-        self.tree_root.appendRows([self.docs_root, self.authors_root, self.categories_root, self.shelves_root])
+        self.documents_model = QtGui.QStandardItemModel()
+        self.documents_model.setHorizontalHeaderLabels(DocumentItem.labels)
 
-        self.treeView.setModel(self.tree_model)
-        self.treeView.clicked.connect(self._tree_item_selected)
+        self.authors_model = QtGui.QStandardItemModel()
+        self.authors_model.setHorizontalHeaderLabels(AuthorItem.labels)
 
-        self._load_data(models.Shelf, ShelfItem, self.shelves_root)
-        self._load_data(models.Author, AuthorItem, self.authors_root)
-        self._load_data(models.Document, DocumentItem, self.docs_root)
-        self._load_catetories()
+        self.categories_model = QtGui.QStandardItemModel()
+        self.categories_root = self.categories_model.invisibleRootItem()
+        self.categories_model.setHorizontalHeaderLabels(['Categories'])
+
+        self.shelf_view.setModel(self.shelf_model)
+        self.shelf_view.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+        self.shelf_view.clicked.connect(self._shelf_selected)
+
+        self.documents_view.setModel(self.documents_model)
+        self.documents_view.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+        self.documents_view.clicked.connect(self._document_selected)
+
+        self.authors_view.setModel(self.authors_model)
+        self.authors_view.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+        self.authors_view.clicked.connect(self._author_selected)
+
+        self.categories_view.setModel(self.categories_model)
+        self.categories_view.clicked.connect(self._category_selected)
+
+        self._load_data(models.Shelf, ShelfItem, self.shelf_model)
+        self._load_data(models.Author, AuthorItem, self.authors_model)
+        self._load_data(models.Document, DocumentItem, self.documents_model)
+        self._load_categories()
 
     @staticmethod
     def _load_data(model, item_model, root):
 
         s = get_session()
         data_items = s.query(model).all()
-        for data_item in data_items:
+        for i, data_item in enumerate(data_items):
             item = item_model(data_item)
-            root.appendRow(item)
+            children = []
+            for col, display_field in enumerate(item_model.display_fields):
+                children.append(QtGui.QStandardItem(getattr(item.model, display_field)))
+            root.appendRow(children)
+            root.setData(root.index(i, 0), data_item, QtCore.Qt.UserRole)
 
-    def _load_catetories(self):
+    def _load_categories(self):
 
         s = get_session()
         parent_categories = s.query(models.Category).filter(
@@ -92,50 +114,76 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Qodex):
         for category in parent_categories:
             recursive_add_category(self.categories_root, category)
 
-    def _tree_item_selected(self, index: QtCore.QModelIndex):
+    def _shelf_selected(self, index: QtCore.QModelIndex):
 
-        logger.debug(index)
-        item = self.tree_model.itemFromIndex(index)
-        logger.debug(item)
+        row_idx = self.shelf_model.index(index.row(), 0)
+        data_item = self.shelf_model.itemData(row_idx)[QtCore.Qt.UserRole]
 
-        for child in self.frame.children():
-            child.deleteLater()
+        widget = EditShelfView(data_item)
+        widget.update.connect(self._refresh_tree)
+        self.properties_scroll.setWidget(widget)
+        widget.show()
 
-        if isinstance(item, ShelfItem):
-            widget = EditShelfView(item.shelf, parent=self.frame)
-            widget.update.connect(self._refresh_tree)
-            widget.show()
-        elif isinstance(item, AuthorItem):
-            widget = EditAuthorView(item.author, parent=self.frame)
-            widget.update.connect(self._refresh_tree)
-            widget.show()
-        elif isinstance(item, CategoryItem):
-            widget = EditCategoryView(item.category, parent=self.frame)
-            widget.update.connect(self._load_catetories)
-            widget.show()
-        elif isinstance(item, DocumentItem):
-            widget = EditDocumentView(item.document, parent=self.frame)
-            widget.update.connect(self._refresh_tree)
-            widget.show()
-        else:
-            logger.debug('unknown type')
+    def _document_selected(self, index: QtCore.QModelIndex):
 
-    # @QtCore.Slot(models.Author, str, str)
-    def _refresh_tree(self, instance, root: str, item_model: str):
+        row_idx = self.documents_model.index(index.row(), 0)
+        data_item = self.documents_model.itemData(row_idx)[QtCore.Qt.UserRole]
 
-        tree_root = getattr(self, root)
-        for row in range(tree_root.rowCount()):
-            item = tree_root.child(row, 0)
-            if getattr(item, item_model).id == instance.id:
-                setattr(item, item_model, instance)
-                item.setText(str(instance))
+        widget = EditDocumentView(data_item, row_idx)
+        widget.update.connect(self._refresh_documents)
+        self.properties_scroll.setWidget(widget)
+        widget.show()
+
+    def _author_selected(self, index: QtCore.QModelIndex):
+
+        row_idx = self.authors_model.index(index.row(), 0)
+        data_item = self.authors_model.itemData(row_idx)[QtCore.Qt.UserRole]
+        widget = EditAuthorView(data_item, row_idx)
+        widget.update.connect(self._refresh_authors)
+        self.properties_scroll.setWidget(widget)
+        widget.show()
+
+    def _category_selected(self, index: QtCore.QModelIndex, *args):
+
+        data_item = self.categories_model.itemFromIndex(index).category
+
+        widget = EditCategoryView(data_item, index)
+        widget.update.connect(self._refresh_categories)
+        self.properties_scroll.setWidget(widget)
+        widget.show()
+
+    def _refresh_authors(self, instance: models.Author, index: QtCore.QModelIndex):
+
+        for col, display_field in enumerate(AuthorItem.display_fields):
+            self.authors_model.setItem(index.row(), col, QtGui.QStandardItem(getattr(instance, display_field)))
+
+        self.authors_model.setData(self.authors_model.index(index.row(), 0), instance, QtCore.Qt.UserRole)
+
+    def _refresh_documents(self, instance: models.Document, index: QtCore.QModelIndex):
+
+        for col, display_field in enumerate(DocumentItem.display_fields):
+            print(index.row(), col)
+            self.documents_model.setItem(index.row(), col, QtGui.QStandardItem(getattr(instance, display_field)))
+
+        self.documents_model.setData(self.documents_model.index(index.row(), 0), instance, QtCore.Qt.UserRole)
+
+    def _refresh_categories(self, *_):
+
+        # this isn't efficient in general, but it accounts for the fact that the category hierarchy
+        # can change and there's no good way of doing surgery on the tree to account for that. and
+        # there aren't going to be that many categories anyway probably
+        # FIXME: do this correctly
+        self._load_categories()
 
     def _find_parent_category(self, category: models.Category):
 
-        for row in range(self.categories_root.rowCount()):
-            item: CategoryItem = self.categories_root.child(row, 0)
-            if category.parent_id == item.category.id:
-                return item
+        s = get_session()
+        parent = s.query(models.Category).get(category.parent_id)
+        categories = self.categories_model.findItems(str(parent), QtCore.Qt.MatchRecursive)
+        for candidate in categories:  # type: CategoryItem
+            if parent.id == candidate.category.id:
+                return candidate
+        return self.categories_root
 
     def new_shelf(self, s):
 

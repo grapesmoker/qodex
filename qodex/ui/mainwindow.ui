@@ -1,57 +1,101 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Qodex</class>
- <widget class="QMainWindow" name="Qodex">
+ <class>QodexMain</class>
+ <widget class="QMainWindow" name="QodexMain">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1046</width>
-    <height>635</height>
+    <width>1012</width>
+    <height>947</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Qodex</string>
+   <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="0">
-     <widget class="QTreeView" name="treeView">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
+     <widget class="QTabWidget" name="main_tab_view">
+      <property name="currentIndex">
+       <number>0</number>
       </property>
-     </widget>
-    </item>
-    <item row="0" column="1">
-     <widget class="QFrame" name="frame">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="frameShape">
-       <enum>QFrame::StyledPanel</enum>
-      </property>
-      <property name="frameShadow">
-       <enum>QFrame::Raised</enum>
-      </property>
-     </widget>
-    </item>
-    <item row="0" column="2">
-     <widget class="QTabWidget" name="tabWidget">
-      <widget class="QWidget" name="tab">
+      <widget class="QWidget" name="shelf_tab">
        <attribute name="title">
-        <string>Tab 1</string>
+        <string>Shelves</string>
        </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <widget class="QTableView" name="shelf_view"/>
+        </item>
+       </layout>
       </widget>
-      <widget class="QWidget" name="tab_2">
+      <widget class="QWidget" name="documents_tab">
        <attribute name="title">
-        <string>Tab 2</string>
+        <string>Documents</string>
        </attribute>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <widget class="QTableView" name="documents_view"/>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="authors_tab">
+       <attribute name="title">
+        <string>Authors</string>
+       </attribute>
+       <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <item>
+         <widget class="QTableView" name="authors_view">
+          <attribute name="horizontalHeaderCascadingSectionResizes">
+           <bool>false</bool>
+          </attribute>
+          <attribute name="horizontalHeaderStretchLastSection">
+           <bool>false</bool>
+          </attribute>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="categories_tab">
+       <attribute name="title">
+        <string>Categories</string>
+       </attribute>
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <item>
+         <widget class="QTreeView" name="categories_view"/>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+    <item>
+     <spacer name="verticalSpacer">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>880</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item>
+     <widget class="QScrollArea" name="properties_scroll">
+      <property name="widgetResizable">
+       <bool>true</bool>
+      </property>
+      <widget class="QWidget" name="scrollAreaWidgetContents">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>477</width>
+         <height>881</height>
+        </rect>
+       </property>
       </widget>
      </widget>
     </item>
@@ -62,15 +106,15 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1046</width>
-     <height>22</height>
+     <width>1012</width>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
     <property name="title">
      <string>File</string>
     </property>
-    <widget class="QMenu" name="menuNew_3">
+    <widget class="QMenu" name="menuNew">
      <property name="title">
       <string>New</string>
      </property>
@@ -79,11 +123,21 @@
      <addaction name="action_add_author"/>
      <addaction name="action_add_category"/>
     </widget>
-    <addaction name="menuNew_3"/>
+    <addaction name="menuNew"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionAdd_shelf">
+   <property name="text">
+    <string>Add shelf</string>
+   </property>
+  </action>
+  <action name="actionAdd_document">
+   <property name="text">
+    <string>Add document</string>
+   </property>
+  </action>
   <action name="action_add_shelf">
    <property name="text">
     <string>Shelf</string>

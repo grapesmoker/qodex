@@ -77,6 +77,16 @@ class Document(Base):
         else:
             return self.path
 
+    @property
+    def display_authors(self):
+
+        return '; '.join(map(str, self.authors))
+
+    @property
+    def display_categories(self):
+
+        return '; '.join(map(str, self.categories))
+
 
 class DocumentType(Base):
 

@@ -78,12 +78,13 @@ class EditShelfView(QtWidgets.QWidget, Ui_EditShelf):
 
 class EditAuthorView(QtWidgets.QWidget, Ui_EditAuthor):
 
-    update = QtCore.Signal(models.Author, str, str)
+    update = QtCore.Signal(models.Author, QtCore.QModelIndex)
 
-    def __init__(self, author: models.Author, parent=None):
+    def __init__(self, author: models.Author, index=None, parent=None):
         super().__init__(parent=parent)
         self.setupUi(self)
         self.author = author
+        self.index = index
 
         self.first_name.setText(author.first_name)
         self.middle_name.setText(author.middle_name)
@@ -100,17 +101,18 @@ class EditAuthorView(QtWidgets.QWidget, Ui_EditAuthor):
         s.add(self.author)
         s.commit()
 
-        self.update.emit(self.author, 'authors_root', 'author')
+        self.update.emit(self.author, self.index)
 
 
 class EditCategoryView(QtWidgets.QWidget, Ui_EditCategory):
 
-    update = QtCore.Signal()
+    update = QtCore.Signal(models.Category, QtCore.QModelIndex)
 
-    def __init__(self, category: models.Category, parent=None):
+    def __init__(self, category: models.Category, index=None, parent=None):
         super().__init__(parent=parent)
         self.setupUi(self)
         self.category = category
+        self.index = index
         self.name.setText(str(category))
         self.save_button.clicked.connect(self._save_category)
 
@@ -153,7 +155,7 @@ class EditCategoryView(QtWidgets.QWidget, Ui_EditCategory):
         s.add(self.category)
         s.commit()
 
-        self.update.emit()
+        self.update.emit(self.category, self.index)
 
     def _find_parent_category(self, category: models.Category):
 
@@ -174,13 +176,14 @@ class EditFooView(QtWidgets.QWidget, Ui_EditDocument):
 
 class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
 
-    update = QtCore.Signal()
+    update = QtCore.Signal(models.Document, QtCore.QModelIndex)
 
-    def __init__(self, document: models.Document, parent=None):
+    def __init__(self, document: models.Document, index=None, parent=None):
         super().__init__(parent=parent)
         self.setupUi(self)
 
         self.doc = document
+        self.index = index
 
         self.path.setText(self.doc.path)
         self.title.setText(self.doc.title)
@@ -201,4 +204,4 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
         s.add(self.doc)
         s.commit()
 
-        self.update.emit(self.doc, 'docs_root', 'document')
+        self.update.emit(self.doc, self.index)
