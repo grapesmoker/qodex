@@ -110,3 +110,8 @@ ENV/
 
 # notebooks
 notebooks/**
+
+# emacs cruft
+\#*
+.#*
+*~
