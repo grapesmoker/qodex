@@ -1,11 +1,4 @@
-import datetime
 import logging
-import isbnlib
-import crossref_commons.retrieval
-import threading
-
-from pprint import pprint
-from typing import List
 from pathlib import Path
 from logging import getLogger
 from PySide6 import QtWidgets, QtCore, QtGui, Qt
@@ -19,7 +12,7 @@ from qodex.db.settings import get_session
 from qodex.dialogs import (
     NewShelfDialog, NewAuthorDialog, NewCategoryDialog,
     EditShelfView, EditAuthorView, EditCategoryView,
-    EditDocumentView, EditFooView
+    EditDocumentView
 )
 from qodex.item_models import ShelfItem, AuthorItem, CategoryItem, DocumentItem
 from qodex.doctools.pdf import extract_meta
@@ -31,6 +24,8 @@ logger.setLevel(logging.DEBUG)
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
+
+    author_added = QtCore.Signal(models.Author)
 
     def __init__(self):
         super().__init__()
@@ -131,6 +126,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
 
         widget = EditDocumentView(data_item, row_idx)
         widget.update.connect(self._refresh_documents)
+        widget.new_author.connect(self.new_author)
+        self.author_added.connect(widget.update_author_list)
         self.properties_scroll.setWidget(widget)
         widget.show()
 
@@ -185,9 +182,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
                 return candidate
         return self.categories_root
 
-    def new_shelf(self, s):
+    def new_shelf(self, *_):
 
-        logger.debug(f'adding shelf {s}')
         dlg = NewShelfDialog()
         if dlg.exec_():
             s = get_session()
@@ -207,9 +203,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
                 msg.setText(f'A shelf named "{shelf.name}" already exists.')
                 msg.exec_()
 
-    def new_author(self, s):
+    def new_author(self, *_):
 
-        print('adding author', s)
         dlg = NewAuthorDialog()
         if dlg.exec_():
             s = get_session()
@@ -219,8 +214,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
                                             middle_name=dlg.middle_name.text(),
                                             last_name=dlg.last_name.text())
             if created:
-                author_item = AuthorItem(author)
-                self.authors_root.appendRow(author_item)
+                idx = self.authors_model.createIndex(self.authors_model.rowCount(), 0)
+                self._refresh_authors(author, idx)
+                self.author_added.emit(author)
             else:
                 msg = QtWidgets.QMessageBox(self)
                 msg.setIcon(QtWidgets.QMessageBox.Information)
@@ -274,7 +270,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
                 )
             else:
                 update_worker.ready.connect(
-                    lambda: self.docs_root.appendRow(DocumentItem(doc))
+                    lambda: self.documents_model.appendRow(DocumentItem(doc))
                 )
 
             update_worker.start()

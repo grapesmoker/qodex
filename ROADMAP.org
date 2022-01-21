@@ -1,0 +1,25 @@
+* Qodex Roadmap
+- [1/10] Document functions
+  - [X] add existing authors to document
+  - [ ] view document in pdf viewer
+  - [ ] delete document from db
+  - [ ] rename document according to pattern
+  - [ ] import entire directory
+  - [ ] additional fields from doc
+  - [ ] refresh metadata
+  - [ ] mass rename
+  - [ ] move library to location
+  - [ ] attach category
+- [0/1] shelves
+  - [ ] add document to shelf
+- [0/3] searches
+  - [ ] search arxiv
+  - [ ] search pubmed
+  - [ ] ????
+- [0/1] bibliography
+  - [ ] export bib entry
+- [0/3] features
+  - [ ] tags?
+  - [ ] search
+  - [ ] settings?
+  

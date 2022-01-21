@@ -17,7 +17,7 @@ class Ui_EditDocument(object):
     def setupUi(self, EditDocument):
         if not EditDocument.objectName():
             EditDocument.setObjectName(u"EditDocument")
-        EditDocument.resize(690, 756)
+        EditDocument.resize(692, 361)
         self.formLayout = QFormLayout(EditDocument)
         self.formLayout.setObjectName(u"formLayout")
         self.label_2 = QLabel(EditDocument)
@@ -43,7 +43,7 @@ class Ui_EditDocument(object):
         self.label_3 = QLabel(EditDocument)
         self.label_3.setObjectName(u"label_3")
 
-        self.formLayout.setWidget(3, QFormLayout.LabelRole, self.label_3)
+        self.formLayout.setWidget(2, QFormLayout.LabelRole, self.label_3)
 
         self.authors = QListView(EditDocument)
         self.authors.setObjectName(u"authors")
@@ -52,8 +52,10 @@ class Ui_EditDocument(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.authors.sizePolicy().hasHeightForWidth())
         self.authors.setSizePolicy(sizePolicy)
+        self.authors.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.authors.setSelectionMode(QAbstractItemView.MultiSelection)
 
-        self.formLayout.setWidget(3, QFormLayout.FieldRole, self.authors)
+        self.formLayout.setWidget(2, QFormLayout.FieldRole, self.authors)
 
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
@@ -67,8 +69,13 @@ class Ui_EditDocument(object):
 
         self.horizontalLayout.addWidget(self.delete_button)
 
+        self.view_button = QPushButton(EditDocument)
+        self.view_button.setObjectName(u"view_button")
 
-        self.formLayout.setLayout(5, QFormLayout.FieldRole, self.horizontalLayout)
+        self.horizontalLayout.addWidget(self.view_button)
+
+
+        self.formLayout.setLayout(3, QFormLayout.FieldRole, self.horizontalLayout)
 
 
         self.retranslateUi(EditDocument)
@@ -84,5 +91,6 @@ class Ui_EditDocument(object):
         self.label_3.setText(QCoreApplication.translate("EditDocument", u"Authors", None))
         self.save_button.setText(QCoreApplication.translate("EditDocument", u"Save", None))
         self.delete_button.setText(QCoreApplication.translate("EditDocument", u"Delete", None))
+        self.view_button.setText(QCoreApplication.translate("EditDocument", u"View PDF", None))
     # retranslateUi
 

@@ -9,6 +9,7 @@ from ui.edit_author import Ui_EditAuthor
 from ui.new_category import Ui_NewCategoryDialog
 from ui.edit_category import Ui_EditCategory
 from ui.edit_document import Ui_EditDocument
+from ui.select_author import Ui_SelectAuthorDialog
 
 from qodex.db.settings import get_session
 from qodex.db import models
@@ -50,6 +51,22 @@ class NewCategoryDialog(QtWidgets.QDialog, Ui_NewCategoryDialog):
 
         for category in top_level_categories:
             recursive_add_category(self.combo_root, category, 0)
+
+
+class SelectAuthorDialog(QtWidgets.QDialog, Ui_SelectAuthorDialog):
+
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+        self.authors_model = QtGui.QStandardItemModel()
+        self.authors_view.setModel(self.authors_model)
+
+        s = get_session()
+
+        all_authors = s.query(models.Author).all()
+
+        for author in all_authors:
+            self.authors_model.appendRow(AuthorItem(author))
 
 
 class EditShelfView(QtWidgets.QWidget, Ui_EditShelf):
@@ -167,16 +184,10 @@ class EditCategoryView(QtWidgets.QWidget, Ui_EditCategory):
         return None, 0
 
 
-class EditFooView(QtWidgets.QWidget, Ui_EditDocument):
-
-    def __init__(self, parent=None):
-        super().__init__(parent=parent)
-        self.setupUi(self)
-
-
 class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
 
     update = QtCore.Signal(models.Document, QtCore.QModelIndex)
+    new_author = QtCore.Signal()
 
     def __init__(self, document: models.Document, index=None, parent=None):
         super().__init__(parent=parent)
@@ -196,6 +207,9 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
             self.authors_model.appendRow(author_item)
 
         self.save_button.clicked.connect(self._save_document)
+        self.delete_button.clicked.connect(self._remove_document)
+        self.view_button.clicked.connect(self._view_document)
+        self.authors.customContextMenuRequested.connect(self._author_context_menu)
 
     def _save_document(self, *args):
 
@@ -205,3 +219,54 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
         s.commit()
 
         self.update.emit(self.doc, self.index)
+
+    def _remove_document(self, *args):
+
+        pass
+
+    def _view_document(self, *args):
+
+        QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(self.doc.path))
+
+    def _author_context_menu(self, coords: QtCore.QPoint):
+
+        selection = self.authors.selectedIndexes()
+        menu = QtWidgets.QMenu(self)
+        add_new_author = QtGui.QAction('Add new author')
+        add_new_author.triggered.connect(lambda _: self.new_author.emit())
+        menu.addAction(add_new_author)
+        add_existing_author = QtGui.QAction('Add existing author')
+        add_existing_author.triggered.connect(self._add_existing_author)
+        menu.addAction(add_existing_author)
+
+        if len(selection) > 0:
+            remove_authors = QtGui.QAction('Remove author(s)')
+            remove_authors.triggered.connect(lambda _: self._remove_authors(selection))
+            menu.addAction(remove_authors)
+
+        result = menu.exec_(self.mapToGlobal(coords))
+
+    @QtCore.Slot(models.Author)
+    def update_author_list(self, author: models.Author):
+
+        print(f'added {author}')
+        self.authors_model.appendRow(AuthorItem(author))
+        s = get_session()
+        author.documents.append(self.doc)
+        s.commit()
+
+    def _remove_authors(self, selection: List[QtCore.QModelIndex]):
+
+        s = get_session()
+        for idx in sorted(selection, key=lambda index: index.row(), reverse=True):
+            author_item = self.authors_model.itemFromIndex(idx)
+            self.doc.authors.remove(author_item.author)
+            self.authors_model.removeRow(idx.row())
+        s.commit()
+
+    def _add_existing_author(self):
+
+        dlg = SelectAuthorDialog()
+        if dlg.exec_():
+            selected_authors = dlg.authors_view.selectedIndexes()
+
