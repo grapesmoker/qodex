@@ -1,12 +1,13 @@
 * Qodex Roadmap
-- [1/10] Document functions
+- [5/11] Document functions
   - [X] add existing authors to document
-  - [ ] view document in pdf viewer
-  - [ ] delete document from db
+  - [X] view document in pdf viewer
+  - [X] delete document from db
   - [ ] rename document according to pattern
   - [ ] import entire directory
-  - [ ] additional fields from doc
+  - [X] additional fields from doc
   - [ ] refresh metadata
+  - [X] populate document types from bibtex
   - [ ] mass rename
   - [ ] move library to location
   - [ ] attach category

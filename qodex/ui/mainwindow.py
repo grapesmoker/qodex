@@ -52,6 +52,7 @@ class Ui_QodexMain(object):
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.documents_view = QTableView(self.documents_tab)
         self.documents_view.setObjectName(u"documents_view")
+        self.documents_view.horizontalHeader().setCascadingSectionResizes(True)
 
         self.horizontalLayout_2.addWidget(self.documents_view)
 
@@ -117,7 +118,7 @@ class Ui_QodexMain(object):
 
         self.retranslateUi(QodexMain)
 
-        self.main_tab_view.setCurrentIndex(0)
+        self.main_tab_view.setCurrentIndex(1)
 
 
         QMetaObject.connectSlotsByName(QodexMain)

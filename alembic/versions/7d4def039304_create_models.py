@@ -47,6 +47,7 @@ def upgrade():
     op.create_table('document_type',
                     sa.Column('id', sa.Integer(), nullable=False),
                     sa.Column('title', sa.String(), nullable=True),
+                    sa.Column('display_title', sa.String(), nullable=True),
                     sa.Column('description', sa.String(), nullable=True),
                     sa.PrimaryKeyConstraint('id')
                     )

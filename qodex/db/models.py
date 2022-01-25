@@ -55,7 +55,9 @@ class Document(Base):
                               order_by='asc(Category.id)')
 
     shelves = relationship('Shelf', secondary=shelf_documents, back_populates='documents')
-    document_types = relationship('DocumentType', secondary=document_types, back_populates='documents')
+    document_type_id = Column('document_type_id', ForeignKey('document_type.id'))
+    document_type = relationship('DocumentType')
+    # document_types = relationship('DocumentType', secondary=document_types, back_populates='documents')
 
     abstract = Column(String(), index=True)
     publication = Column(String(), index=True)
@@ -95,8 +97,9 @@ class DocumentType(Base):
     id = Column(Integer, Sequence('user_id_seq'), primary_key=True)
     title = Column(String(), index=True)
     description = Column(String(), index=True)
+    display_title = Column(String())
 
-    documents = relationship('Document', secondary=document_types, back_populates='document_types')
+    # documents = relationship('Document', secondary=document_types, back_populates='document_types')
 
 
 class Author(Base):

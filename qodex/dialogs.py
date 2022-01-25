@@ -11,6 +11,7 @@ from ui.edit_category import Ui_EditCategory
 from ui.edit_document import Ui_EditDocument
 from ui.select_author import Ui_SelectAuthorDialog
 
+from qodex.common import UpdateMode
 from qodex.db.settings import get_session
 from qodex.db import models
 from qodex.item_models import AuthorItem, CategoryItem
@@ -186,7 +187,7 @@ class EditCategoryView(QtWidgets.QWidget, Ui_EditCategory):
 
 class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
 
-    update = QtCore.Signal(models.Document, QtCore.QModelIndex)
+    update = QtCore.Signal(models.Document, QtCore.QModelIndex, UpdateMode)
     new_author = QtCore.Signal()
 
     def __init__(self, document: models.Document, index=None, parent=None):
@@ -198,6 +199,19 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
 
         self.path.setText(self.doc.path)
         self.title.setText(self.doc.title)
+        self._populate_types()
+        self.doi.setText(self.doc.doi)
+        self.isbn.setText(self.doc.isbn)
+        self.url.setText(self.doc.url)
+        self.doc_abstract.setText(self.doc.abstract)
+        self.publication.setText(self.doc.publication)
+        self.edition.setText(self.doc.edition)
+        self.volume.setText(self.doc.volume)
+        self.issue.setText(self.doc.issue)
+        self.pages.setText(self.doc.pages)
+        self.date.setDate(self.doc.date)
+        self.series.setText(self.doc.series)
+        self.language.setText(self.doc.language)
 
         self.authors_model = QtGui.QStandardItemModel()
         self.authors.setModel(self.authors_model)
@@ -206,23 +220,59 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
             author_item = AuthorItem(author)
             self.authors_model.appendRow(author_item)
 
+        self.document_type.activated.connect(lambda x: print(x))
         self.save_button.clicked.connect(self._save_document)
         self.delete_button.clicked.connect(self._remove_document)
         self.view_button.clicked.connect(self._view_document)
         self.authors.customContextMenuRequested.connect(self._author_context_menu)
 
+    def _populate_types(self):
+
+        s = get_session()
+        self.document_type.insertItem(0, 'None', userData=None)
+        current_index = 0
+        for i, document_type in enumerate(s.query(models.DocumentType).all()):
+            self.document_type.insertItem(i + 1, document_type.display_title, userData=document_type)
+            if self.doc.document_type is not None and self.doc.document_type.id == document_type.id:
+                current_index = i + 1
+        self.document_type.setCurrentIndex(current_index)
+
     def _save_document(self, *args):
 
         s = get_session()
         self.doc.title = self.title.text()
+        self.doc.doi = self.doi.text()
+        self.doc.isbn = self.isbn.text()
+        self.doc.url = self.url.text()
+        self.doc.abstract = self.doc_abstract.toPlainText()
+        self.doc.publication = self.publication.text()
+        self.doc.edition = self.edition.text()
+        self.doc.volume = self.volume.text()
+        self.doc.issue = self.issue.text()
+        self.doc.pages = self.pages.text()
+        self.doc.date = self.date.date().toPython()
+        self.doc.series = self.series.text()
+        self.doc.language = self.language.text()
+
+        document_type = self.document_type.itemData(self.document_type.currentIndex())
+        self.doc.document_type = document_type
+
         s.add(self.doc)
         s.commit()
 
-        self.update.emit(self.doc, self.index)
+        self.update.emit(self.doc, self.index, UpdateMode.UPDATE)
 
     def _remove_document(self, *args):
 
-        pass
+        msg = 'Really remove this document from the library? This operation cannot be undone, but your file ' \
+              'will not be deleted.'
+        really_delete = QtWidgets.QMessageBox.question(
+            self, 'Delete?', msg, QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+        if really_delete == QtWidgets.QMessageBox.Yes:
+            s = get_session()
+            s.delete(self.doc)
+            s.commit()
+            self.update.emit(self.doc, self.index, UpdateMode.DELETE)
 
     def _view_document(self, *args):
 
@@ -268,5 +318,12 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
 
         dlg = SelectAuthorDialog()
         if dlg.exec_():
-            selected_authors = dlg.authors_view.selectedIndexes()
+            selected_indexes = dlg.authors_view.selectedIndexes()
+            selected_authors = [dlg.authors_model.itemFromIndex(index).author for index in selected_indexes]
+            s = get_session()
+            for author in selected_authors:
+                self.doc.authors.append(author)
+                self.authors_model.appendRow(AuthorItem(author))
+            s.commit()
+            self.update.emit(self.doc, self.index, UpdateMode.UPDATE)
 

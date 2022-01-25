@@ -13,7 +13,8 @@ def get_engine():
     return get_session.__dict__.setdefault(f'_engine:{conn_string}', create_engine(conn_string))
 
 
-def get_session() -> Session:
+def get_session(engine=None) -> Session:
     # extremely primitive memoization to get a single global session object
-    Session = get_session.__dict__.setdefault('_sessionmaker', sessionmaker(bind=get_engine()))
+    engine = engine or get_engine()
+    Session = get_session.__dict__.setdefault('_sessionmaker', sessionmaker(bind=engine))
     return get_session.__dict__.setdefault('_session', Session())

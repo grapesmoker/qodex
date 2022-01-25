@@ -6,6 +6,7 @@ from PySide6.QtUiTools import QUiLoader
 
 from ui.mainwindow import Ui_QodexMain
 
+from qodex.common import UpdateMode
 from qodex.db import models
 from qodex.db.utils import get_or_create
 from qodex.db.settings import get_session
@@ -156,13 +157,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
 
         self.authors_model.setData(self.authors_model.index(index.row(), 0), instance, QtCore.Qt.UserRole)
 
-    def _refresh_documents(self, instance: models.Document, index: QtCore.QModelIndex):
+    def _refresh_documents(self, instance: models.Document, index: QtCore.QModelIndex, mode=UpdateMode.UPDATE):
 
-        for col, display_field in enumerate(DocumentItem.display_fields):
-            print(index.row(), col)
-            self.documents_model.setItem(index.row(), col, QtGui.QStandardItem(getattr(instance, display_field)))
+        if mode == UpdateMode.UPDATE:
+            for col, display_field in enumerate(DocumentItem.display_fields):
+                print(index.row(), col)
+                self.documents_model.setItem(index.row(), col, QtGui.QStandardItem(getattr(instance, display_field)))
 
-        self.documents_model.setData(self.documents_model.index(index.row(), 0), instance, QtCore.Qt.UserRole)
+            self.documents_model.setData(self.documents_model.index(index.row(), 0), instance, QtCore.Qt.UserRole)
+        elif mode == UpdateMode.DELETE:
+            self.documents_model.removeRow(index.row())
+            widget = self.properties_scroll.takeWidget()
+            widget.deleteLater()
 
     def _refresh_categories(self, *_):
 
@@ -266,7 +272,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
             update_worker.finished.connect(update_worker.deleteLater)
             if not created:
                 update_worker.ready.connect(
-                    lambda: self._refresh_tree(doc, 'docs_root', 'document')
+                    lambda: None
                 )
             else:
                 update_worker.ready.connect(
