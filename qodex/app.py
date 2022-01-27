@@ -27,6 +27,7 @@ logger.setLevel(logging.DEBUG)
 class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
 
     author_added = QtCore.Signal(models.Author)
+    document_added = QtCore.Signal(models.Document)
 
     def __init__(self):
         super().__init__()
@@ -267,16 +268,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
 
         for file in filenames:
             doc, created = get_or_create(models.Document, path=file)
-
-            update_worker = MetaUpdater(doc.id, parent=self)
-            update_worker.finished.connect(update_worker.deleteLater)
-            if not created:
+            # don't repeat work we've already done
+            if created:
+                update_worker = MetaUpdater(doc.id, parent=self)
+                update_worker.finished.connect(update_worker.deleteLater)
                 update_worker.ready.connect(
-                    lambda: None
+                    lambda: self._refresh_documents(
+                        doc,
+                        self.documents_model.createIndex(self.documents_model.rowCount(), 0)
+                    )
                 )
-            else:
-                update_worker.ready.connect(
-                    lambda: self.documents_model.appendRow(DocumentItem(doc))
-                )
+                update_worker.start()
 
-            update_worker.start()
+        self._load_data(models.Author, AuthorItem, self.authors_model)
+        self._load_data(models.Document, DocumentItem, self.documents_model)

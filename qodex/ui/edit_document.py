@@ -17,7 +17,7 @@ class Ui_EditDocument(object):
     def setupUi(self, EditDocument):
         if not EditDocument.objectName():
             EditDocument.setObjectName(u"EditDocument")
-        EditDocument.resize(692, 905)
+        EditDocument.resize(644, 909)
         self.formLayout_2 = QFormLayout(EditDocument)
         self.formLayout_2.setObjectName(u"formLayout_2")
         self.formLayout = QFormLayout()
@@ -197,6 +197,16 @@ class Ui_EditDocument(object):
 
         self.horizontalLayout.addWidget(self.save_button)
 
+        self.update_meta_button = QPushButton(EditDocument)
+        self.update_meta_button.setObjectName(u"update_meta_button")
+
+        self.horizontalLayout.addWidget(self.update_meta_button)
+
+        self.rename_file_button = QPushButton(EditDocument)
+        self.rename_file_button.setObjectName(u"rename_file_button")
+
+        self.horizontalLayout.addWidget(self.rename_file_button)
+
         self.delete_button = QPushButton(EditDocument)
         self.delete_button.setObjectName(u"delete_button")
 
@@ -239,6 +249,8 @@ class Ui_EditDocument(object):
         self.label_12.setText(QCoreApplication.translate("EditDocument", u"Series", None))
         self.label_13.setText(QCoreApplication.translate("EditDocument", u"Language", None))
         self.save_button.setText(QCoreApplication.translate("EditDocument", u"Save", None))
+        self.update_meta_button.setText(QCoreApplication.translate("EditDocument", u"Refresh Meta", None))
+        self.rename_file_button.setText(QCoreApplication.translate("EditDocument", u"Rename file", None))
         self.delete_button.setText(QCoreApplication.translate("EditDocument", u"Delete", None))
         self.view_button.setText(QCoreApplication.translate("EditDocument", u"View PDF", None))
     # retranslateUi

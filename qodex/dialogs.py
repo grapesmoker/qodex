@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List
 
 from PySide6 import QtWidgets, QtCore, QtGui, Qt
@@ -15,6 +16,8 @@ from qodex.common import UpdateMode
 from qodex.db.settings import get_session
 from qodex.db import models
 from qodex.item_models import AuthorItem, CategoryItem
+from qodex.doctools.meta import MetaUpdater
+from qodex.doctools.utils import rename
 
 
 class NewShelfDialog(QtWidgets.QDialog, Ui_NewShelfDialog):
@@ -190,12 +193,19 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
     update = QtCore.Signal(models.Document, QtCore.QModelIndex, UpdateMode)
     new_author = QtCore.Signal()
 
+    RENAME_FIELDS =  ['author', 'title', 'edition', 'volume', 'pages', 'series', 'date']
+
     def __init__(self, document: models.Document, index=None, parent=None):
         super().__init__(parent=parent)
         self.setupUi(self)
-
         self.doc = document
         self.index = index
+        self.authors_model = QtGui.QStandardItemModel()
+
+        self._show_data()
+        self._set_up_signals()
+
+    def _show_data(self):
 
         self.path.setText(self.doc.path)
         self.title.setText(self.doc.title)
@@ -213,15 +223,18 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
         self.series.setText(self.doc.series)
         self.language.setText(self.doc.language)
 
-        self.authors_model = QtGui.QStandardItemModel()
         self.authors.setModel(self.authors_model)
 
         for author in self.doc.authors:
             author_item = AuthorItem(author)
             self.authors_model.appendRow(author_item)
 
+    def _set_up_signals(self):
+
         self.document_type.activated.connect(lambda x: print(x))
         self.save_button.clicked.connect(self._save_document)
+        self.update_meta_button.clicked.connect(self._refresh_metadata)
+        self.rename_file_button.clicked.connect(self._rename_document_file)
         self.delete_button.clicked.connect(self._remove_document)
         self.view_button.clicked.connect(self._view_document)
         self.authors.customContextMenuRequested.connect(self._author_context_menu)
@@ -278,6 +291,19 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
 
         QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(self.doc.path))
 
+    def _refresh_metadata(self, *args):
+
+        title = 'Refresh metadata?'
+        msg = 'Metadata will be replaced by any data that is obtained from metadata servers. Continue?'
+        really_refresh = QtWidgets.QMessageBox.question(
+            self, title, msg, QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+
+        if really_refresh == QtWidgets.QMessageBox.Yes:
+            update_worker = MetaUpdater(self.doc.id, get_meta_from_file=False, parent=self)
+            update_worker.finished.connect(update_worker.deleteLater)
+            update_worker.finished.connect(self._show_data)
+            update_worker.start()
+
     def _author_context_menu(self, coords: QtCore.QPoint):
 
         selection = self.authors.selectedIndexes()
@@ -327,3 +353,25 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
             s.commit()
             self.update.emit(self.doc, self.index, UpdateMode.UPDATE)
 
+    def _rename_document_file(self):
+
+        title = 'Rename file'
+        msg = """Enter the format string for renaming the document. Allowed field values are:
+            {last_name}, {first_name}, {author}, {authors_last_names}, {authors}, {title}, {categories}
+           """
+        default = '{title} - {authors}.pdf'
+        pattern, ok = QtWidgets.QInputDialog.getText(self, title, msg, QtWidgets.QLineEdit.Normal, default)
+
+        if ok:
+            new_name = rename(pattern, self.doc)
+            msg = f'Renaming {self.doc.path} -> {new_name}'
+            really_rename = QtWidgets.QMessageBox.question(
+                self, 'Rename?', msg, QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+            if really_rename == QtWidgets.QMessageBox.Yes:
+                Path(self.doc.path).rename(new_name)
+                self.doc.path = str(new_name)
+                s = get_session()
+                s.add(self.doc)
+                s.commit()
+                self.path.setText(str(new_name))
+                self.update.emit(self.doc, self.index, UpdateMode.UPDATE)

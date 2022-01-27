@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>692</width>
-    <height>905</height>
+    <width>644</width>
+    <height>909</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -202,6 +202,20 @@
         <widget class="QPushButton" name="save_button">
          <property name="text">
           <string>Save</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="update_meta_button">
+         <property name="text">
+          <string>Refresh Meta</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="rename_file_button">
+         <property name="text">
+          <string>Rename file</string>
          </property>
         </widget>
        </item>
