@@ -201,9 +201,12 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
         self.doc = document
         self.index = index
         self.authors_model = QtGui.QStandardItemModel()
-
+        self.categories_model = QtGui.QStandardItemModel()
+        self.categories_root = self.categories_model.invisibleRootItem()
+        self.category.setModel(self.categories_model)
         self._show_data()
         self._set_up_signals()
+        self._set_up_categories()
 
     def _show_data(self):
 
@@ -228,6 +231,47 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
         for author in self.doc.authors:
             author_item = AuthorItem(author)
             self.authors_model.appendRow(author_item)
+
+    def _set_up_categories(self):
+
+        s = get_session()
+        top_level_categories = s.query(models.Category).filter(
+            models.Category.parent_id == None
+        ).all()
+
+        def recursive_add_category(root, category: models.Category):
+            item = CategoryItem(category)
+            item.setText(str(category))
+            root.appendRow(item)
+            for category in category.subcategories:
+                recursive_add_category(item, category)
+
+        for category in top_level_categories:
+            recursive_add_category(self.categories_root, category)
+
+        for category in self.doc.categories:
+            category_item = self._find_category(category)
+            self.category.selectionModel().select(category_item.index(), QtCore.QItemSelectionModel.Select)
+
+        self.category.expandAll()
+
+    def _find_category(self, category: models.Category):
+
+        categories = self.categories_model.findItems(str(category), QtCore.Qt.MatchRecursive)
+        for candidate in categories:  # type: CategoryItem
+            if category.id == candidate.category.id:
+                return candidate
+        return None
+
+    def _find_parent_category(self, category: models.Category):
+
+        s = get_session()
+        parent = s.query(models.Category).get(category.parent_id)
+        categories = self.categories_model.findItems(str(parent), QtCore.Qt.MatchRecursive)
+        for candidate in categories:  # type: CategoryItem
+            if parent.id == candidate.category.id:
+                return candidate
+        return self.categories_root
 
     def _set_up_signals(self):
 
@@ -269,6 +313,10 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
 
         document_type = self.document_type.itemData(self.document_type.currentIndex())
         self.doc.document_type = document_type
+        for category_index in self.category.selectionModel().selectedIndexes():
+            category_item = self.categories_model.itemFromIndex(category_index)
+            # category_item = self.categories_root.child(self.category.currentIndex(), 0)
+            self.doc.categories.append(category_item.category)
 
         s.add(self.doc)
         s.commit()

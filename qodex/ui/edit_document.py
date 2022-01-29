@@ -17,7 +17,7 @@ class Ui_EditDocument(object):
     def setupUi(self, EditDocument):
         if not EditDocument.objectName():
             EditDocument.setObjectName(u"EditDocument")
-        EditDocument.resize(644, 909)
+        EditDocument.resize(644, 1078)
         self.formLayout_2 = QFormLayout(EditDocument)
         self.formLayout_2.setObjectName(u"formLayout_2")
         self.formLayout = QFormLayout()
@@ -73,122 +73,122 @@ class Ui_EditDocument(object):
         self.label_14 = QLabel(EditDocument)
         self.label_14.setObjectName(u"label_14")
 
-        self.formLayout.setWidget(4, QFormLayout.LabelRole, self.label_14)
+        self.formLayout.setWidget(5, QFormLayout.LabelRole, self.label_14)
 
         self.doi = QLineEdit(EditDocument)
         self.doi.setObjectName(u"doi")
 
-        self.formLayout.setWidget(4, QFormLayout.FieldRole, self.doi)
+        self.formLayout.setWidget(5, QFormLayout.FieldRole, self.doi)
 
         self.label_15 = QLabel(EditDocument)
         self.label_15.setObjectName(u"label_15")
 
-        self.formLayout.setWidget(5, QFormLayout.LabelRole, self.label_15)
+        self.formLayout.setWidget(6, QFormLayout.LabelRole, self.label_15)
 
         self.isbn = QLineEdit(EditDocument)
         self.isbn.setObjectName(u"isbn")
 
-        self.formLayout.setWidget(5, QFormLayout.FieldRole, self.isbn)
+        self.formLayout.setWidget(6, QFormLayout.FieldRole, self.isbn)
 
         self.label_16 = QLabel(EditDocument)
         self.label_16.setObjectName(u"label_16")
 
-        self.formLayout.setWidget(6, QFormLayout.LabelRole, self.label_16)
+        self.formLayout.setWidget(7, QFormLayout.LabelRole, self.label_16)
 
         self.url = QLineEdit(EditDocument)
         self.url.setObjectName(u"url")
 
-        self.formLayout.setWidget(6, QFormLayout.FieldRole, self.url)
+        self.formLayout.setWidget(7, QFormLayout.FieldRole, self.url)
 
         self.label_5 = QLabel(EditDocument)
         self.label_5.setObjectName(u"label_5")
 
-        self.formLayout.setWidget(7, QFormLayout.LabelRole, self.label_5)
+        self.formLayout.setWidget(8, QFormLayout.LabelRole, self.label_5)
 
         self.doc_abstract = QTextEdit(EditDocument)
         self.doc_abstract.setObjectName(u"doc_abstract")
 
-        self.formLayout.setWidget(7, QFormLayout.FieldRole, self.doc_abstract)
+        self.formLayout.setWidget(8, QFormLayout.FieldRole, self.doc_abstract)
 
         self.label_6 = QLabel(EditDocument)
         self.label_6.setObjectName(u"label_6")
 
-        self.formLayout.setWidget(8, QFormLayout.LabelRole, self.label_6)
+        self.formLayout.setWidget(9, QFormLayout.LabelRole, self.label_6)
 
         self.publication = QLineEdit(EditDocument)
         self.publication.setObjectName(u"publication")
 
-        self.formLayout.setWidget(8, QFormLayout.FieldRole, self.publication)
+        self.formLayout.setWidget(9, QFormLayout.FieldRole, self.publication)
 
         self.label_7 = QLabel(EditDocument)
         self.label_7.setObjectName(u"label_7")
 
-        self.formLayout.setWidget(9, QFormLayout.LabelRole, self.label_7)
+        self.formLayout.setWidget(10, QFormLayout.LabelRole, self.label_7)
 
         self.edition = QLineEdit(EditDocument)
         self.edition.setObjectName(u"edition")
 
-        self.formLayout.setWidget(9, QFormLayout.FieldRole, self.edition)
+        self.formLayout.setWidget(10, QFormLayout.FieldRole, self.edition)
 
         self.label_8 = QLabel(EditDocument)
         self.label_8.setObjectName(u"label_8")
 
-        self.formLayout.setWidget(10, QFormLayout.LabelRole, self.label_8)
+        self.formLayout.setWidget(11, QFormLayout.LabelRole, self.label_8)
 
         self.volume = QLineEdit(EditDocument)
         self.volume.setObjectName(u"volume")
 
-        self.formLayout.setWidget(10, QFormLayout.FieldRole, self.volume)
+        self.formLayout.setWidget(11, QFormLayout.FieldRole, self.volume)
 
         self.label_9 = QLabel(EditDocument)
         self.label_9.setObjectName(u"label_9")
 
-        self.formLayout.setWidget(11, QFormLayout.LabelRole, self.label_9)
+        self.formLayout.setWidget(12, QFormLayout.LabelRole, self.label_9)
 
         self.issue = QLineEdit(EditDocument)
         self.issue.setObjectName(u"issue")
 
-        self.formLayout.setWidget(11, QFormLayout.FieldRole, self.issue)
+        self.formLayout.setWidget(12, QFormLayout.FieldRole, self.issue)
 
         self.label_10 = QLabel(EditDocument)
         self.label_10.setObjectName(u"label_10")
 
-        self.formLayout.setWidget(12, QFormLayout.LabelRole, self.label_10)
+        self.formLayout.setWidget(13, QFormLayout.LabelRole, self.label_10)
 
         self.pages = QLineEdit(EditDocument)
         self.pages.setObjectName(u"pages")
 
-        self.formLayout.setWidget(12, QFormLayout.FieldRole, self.pages)
+        self.formLayout.setWidget(13, QFormLayout.FieldRole, self.pages)
 
         self.label_11 = QLabel(EditDocument)
         self.label_11.setObjectName(u"label_11")
 
-        self.formLayout.setWidget(13, QFormLayout.LabelRole, self.label_11)
+        self.formLayout.setWidget(14, QFormLayout.LabelRole, self.label_11)
 
         self.date = QDateEdit(EditDocument)
         self.date.setObjectName(u"date")
 
-        self.formLayout.setWidget(13, QFormLayout.FieldRole, self.date)
+        self.formLayout.setWidget(14, QFormLayout.FieldRole, self.date)
 
         self.label_12 = QLabel(EditDocument)
         self.label_12.setObjectName(u"label_12")
 
-        self.formLayout.setWidget(14, QFormLayout.LabelRole, self.label_12)
+        self.formLayout.setWidget(15, QFormLayout.LabelRole, self.label_12)
 
         self.series = QLineEdit(EditDocument)
         self.series.setObjectName(u"series")
 
-        self.formLayout.setWidget(14, QFormLayout.FieldRole, self.series)
+        self.formLayout.setWidget(15, QFormLayout.FieldRole, self.series)
 
         self.label_13 = QLabel(EditDocument)
         self.label_13.setObjectName(u"label_13")
 
-        self.formLayout.setWidget(15, QFormLayout.LabelRole, self.label_13)
+        self.formLayout.setWidget(16, QFormLayout.LabelRole, self.label_13)
 
         self.language = QLineEdit(EditDocument)
         self.language.setObjectName(u"language")
 
-        self.formLayout.setWidget(15, QFormLayout.FieldRole, self.language)
+        self.formLayout.setWidget(16, QFormLayout.FieldRole, self.language)
 
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
@@ -218,7 +218,19 @@ class Ui_EditDocument(object):
         self.horizontalLayout.addWidget(self.view_button)
 
 
-        self.formLayout.setLayout(16, QFormLayout.FieldRole, self.horizontalLayout)
+        self.formLayout.setLayout(17, QFormLayout.FieldRole, self.horizontalLayout)
+
+        self.label_17 = QLabel(EditDocument)
+        self.label_17.setObjectName(u"label_17")
+
+        self.formLayout.setWidget(4, QFormLayout.LabelRole, self.label_17)
+
+        self.category = QTreeView(EditDocument)
+        self.category.setObjectName(u"category")
+        self.category.setSelectionMode(QAbstractItemView.MultiSelection)
+        self.category.header().setVisible(False)
+
+        self.formLayout.setWidget(4, QFormLayout.FieldRole, self.category)
 
 
         self.formLayout_2.setLayout(0, QFormLayout.SpanningRole, self.formLayout)
@@ -253,5 +265,6 @@ class Ui_EditDocument(object):
         self.rename_file_button.setText(QCoreApplication.translate("EditDocument", u"Rename file", None))
         self.delete_button.setText(QCoreApplication.translate("EditDocument", u"Delete", None))
         self.view_button.setText(QCoreApplication.translate("EditDocument", u"View PDF", None))
+        self.label_17.setText(QCoreApplication.translate("EditDocument", u"Category", None))
     # retranslateUi
 
