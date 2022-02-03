@@ -3,7 +3,7 @@ from pathlib import Path
 from logging import getLogger
 from PySide6 import QtWidgets, QtCore, QtGui, Qt
 from PySide6.QtUiTools import QUiLoader
-
+from pprint import pprint
 from ui.mainwindow import Ui_QodexMain
 
 from qodex.common import UpdateMode
@@ -13,11 +13,12 @@ from qodex.db.settings import get_session
 from qodex.dialogs import (
     NewShelfDialog, NewAuthorDialog, NewCategoryDialog,
     EditShelfView, EditAuthorView, EditCategoryView,
-    EditDocumentView
+    EditDocumentView, MoveLibraryDialog
 )
 from qodex.item_models import ShelfItem, AuthorItem, CategoryItem, DocumentItem
 from qodex.doctools.pdf import extract_meta
 from qodex.doctools.meta import MetaUpdater
+from qodex.doctools.batch import RenameController, BulkMoveController
 
 
 logger = getLogger(__name__)
@@ -35,10 +36,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
         self.loader = QUiLoader()
         self._setup_models()
 
+        self.thread_pool = QtCore.QThreadPool()
+
         self.action_add_shelf.triggered.connect(self.new_shelf)
         self.action_add_author.triggered.connect(self.new_author)
         self.action_add_category.triggered.connect(self.new_category)
         self.action_add_document.triggered.connect(self.new_document)
+
+        self.rename_selection.triggered.connect(self._bulk_rename_selection)
+        self.rename_all.triggered.connect(self._bulk_rename_all)
+        self.action_move_library.triggered.connect(self._move_library)
+        self.splitter.setSizes([10000, 10000])
 
     def _setup_models(self):
 
@@ -88,7 +96,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
             item = item_model(data_item)
             children = []
             for col, display_field in enumerate(item_model.display_fields):
-                children.append(QtGui.QStandardItem(getattr(item.model, display_field)))
+                children.append(QtGui.QStandardItem(str(getattr(item.model, display_field))))
             root.appendRow(children)
             root.setData(root.index(i, 0), data_item, QtCore.Qt.UserRole)
 
@@ -116,8 +124,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
         row_idx = self.shelf_model.index(index.row(), 0)
         data_item = self.shelf_model.itemData(row_idx)[QtCore.Qt.UserRole]
 
-        widget = EditShelfView(data_item)
-        widget.update.connect(self._refresh_tree)
+        widget = EditShelfView(data_item, index)
+        widget.update.connect(self._refresh_shelves)
         self.properties_scroll.setWidget(widget)
         widget.show()
 
@@ -137,6 +145,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
 
         row_idx = self.authors_model.index(index.row(), 0)
         data_item = self.authors_model.itemData(row_idx)[QtCore.Qt.UserRole]
+
         widget = EditAuthorView(data_item, row_idx)
         widget.update.connect(self._refresh_authors)
         self.properties_scroll.setWidget(widget)
@@ -158,6 +167,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
 
         self.authors_model.setData(self.authors_model.index(index.row(), 0), instance, QtCore.Qt.UserRole)
 
+    def _refresh_shelves(self, instance: models.Shelf, index: QtCore.QModelIndex):
+
+        for col, display_field in enumerate(ShelfItem.display_fields):
+            self.shelf_model.setItem(index.row(), col, QtGui.QStandardItem(getattr(instance, display_field)))
+
+        self.shelf_model.setData(self.shelf_model.index(index.row(), 0), instance, QtCore.Qt.UserRole)
+
     def _refresh_documents(self, instance: models.Document, index: QtCore.QModelIndex, mode=UpdateMode.UPDATE):
 
         if mode == UpdateMode.UPDATE:
@@ -177,7 +193,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
         # can change and there's no good way of doing surgery on the tree to account for that. and
         # there aren't going to be that many categories anyway probably
         # FIXME: do this correctly
+        self.categories_model.clear()
         self._load_categories()
+
+    def _refresh_all_docs(self):
+        self.documents_model.clear()
+        self._load_data(models.Document, DocumentItem, self.documents_model)
 
     def _find_parent_category(self, category: models.Category):
 
@@ -201,8 +222,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
                 shelf.description = dlg.shelf_description.toPlainText()
                 s.add(shelf)
                 s.commit()
-                shelf_item = ShelfItem(shelf)
-                self.shelves_root.appendRow(shelf_item)
+                idx = self.shelf_model.createIndex(self.shelf_model.rowCount(), 0)
+                self._refresh_shelves(shelf, idx)
             else:
                 msg = QtWidgets.QMessageBox(self)
                 msg.setIcon(QtWidgets.QMessageBox.Information)
@@ -282,3 +303,67 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
 
         self._load_data(models.Author, AuthorItem, self.authors_model)
         self._load_data(models.Document, DocumentItem, self.documents_model)
+
+    def _bulk_rename_all(self):
+
+        s = get_session()
+        doc_ids = [doc.id for doc in s.query(models.Document).all()]
+        self._bulk_rename(doc_ids)
+
+    def _bulk_rename_selection(self):
+
+        selection = self.documents_view.selectedIndexes()
+        doc_items = [self.documents_model.itemData(idx) for idx in selection]
+        doc_ids = []
+        for item in doc_items:
+            doc = item.get(QtCore.Qt.UserRole, None)
+            if doc:
+                doc_ids.append(doc.id)
+        self._bulk_rename(doc_ids)
+
+    def _bulk_rename(self, doc_ids):
+
+        self.progress_bar.setMinimum(0)
+        self.progress_bar.setMaximum(len(doc_ids))
+
+        title = 'Rename files'
+        msg = """Enter the format string for renaming the document. Allowed field values are:\n\n""" \
+
+        default = '{title} - {authors}.pdf'
+        pattern, ok = QtWidgets.QInputDialog.getText(self, title, msg, QtWidgets.QLineEdit.Normal, default)
+
+        if ok:
+            rename_worker = RenameController(doc_ids, pattern)
+            rename_worker.signals.progress.connect(lambda i: self.progress_bar.setValue(i))
+            rename_worker.signals.ready.connect(self._refresh_all_docs)
+            self.thread_pool.start(rename_worker)
+
+    def _move_library(self):
+
+        s = get_session()
+        dlg = MoveLibraryDialog()
+
+        self.progress_bar.setMinimum(0)
+        self.progress_bar.setMaximum(s.query(models.Document).count())
+
+        if dlg.exec_():
+            base_path = dlg.library_path.text()
+            if str(base_path).strip() == '':
+                msg = QtWidgets.QMessageBox(self)
+                msg.setIcon(QtWidgets.QMessageBox.Information)
+                msg.setWindowTitle('Invalid directory!')
+                msg.setText(f'You have selected an invalid directory: {base_path}. Please choose a valid '
+                            f'directory into which you want to put your files.')
+                msg.exec_()
+            else:
+                if dlg.method_copy.isChecked():
+                    method = 'copy'
+                elif dlg.method_move.isChecked():
+                    method = 'move'
+                else:
+                    raise ValueError('Unknown method state!')
+                create_category_folders = dlg.create_category_folders.isChecked()
+                move_worker = BulkMoveController(base_path, method, create_category_folders)
+                move_worker.signals.progress.connect(lambda i: self.progress_bar.setValue(i))
+                move_worker.signals.ready.connect(self._refresh_all_docs)
+                self.thread_pool.start(move_worker)

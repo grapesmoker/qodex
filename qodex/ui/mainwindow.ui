@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1012</width>
-    <height>947</height>
+    <width>1363</width>
+    <height>966</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,92 +16,99 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
-     <widget class="QTabWidget" name="main_tab_view">
-      <property name="currentIndex">
-       <number>1</number>
-      </property>
-      <widget class="QWidget" name="shelf_tab">
-       <attribute name="title">
-        <string>Shelves</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout">
-        <item>
-         <widget class="QTableView" name="shelf_view"/>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="documents_tab">
-       <attribute name="title">
-        <string>Documents</string>
-       </attribute>
-       <layout class="QHBoxLayout" name="horizontalLayout_2">
-        <item>
-         <widget class="QTableView" name="documents_view">
-          <attribute name="horizontalHeaderCascadingSectionResizes">
-           <bool>true</bool>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <widget class="QSplitter" name="splitter">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <widget class="QTabWidget" name="main_tab_view">
+         <property name="currentIndex">
+          <number>1</number>
+         </property>
+         <widget class="QWidget" name="shelf_tab">
+          <attribute name="title">
+           <string>Shelves</string>
           </attribute>
+          <layout class="QVBoxLayout" name="verticalLayout">
+           <item>
+            <widget class="QTableView" name="shelf_view"/>
+           </item>
+          </layout>
          </widget>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="authors_tab">
-       <attribute name="title">
-        <string>Authors</string>
-       </attribute>
-       <layout class="QHBoxLayout" name="horizontalLayout_3">
-        <item>
-         <widget class="QTableView" name="authors_view">
-          <attribute name="horizontalHeaderCascadingSectionResizes">
-           <bool>false</bool>
+         <widget class="QWidget" name="documents_tab">
+          <attribute name="title">
+           <string>Documents</string>
           </attribute>
-          <attribute name="horizontalHeaderStretchLastSection">
-           <bool>false</bool>
-          </attribute>
+          <layout class="QHBoxLayout" name="horizontalLayout_2">
+           <item>
+            <widget class="QTableView" name="documents_view">
+             <property name="selectionBehavior">
+              <enum>QAbstractItemView::SelectRows</enum>
+             </property>
+             <attribute name="horizontalHeaderCascadingSectionResizes">
+              <bool>true</bool>
+             </attribute>
+            </widget>
+           </item>
+          </layout>
          </widget>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="categories_tab">
-       <attribute name="title">
-        <string>Categories</string>
-       </attribute>
-       <layout class="QHBoxLayout" name="horizontalLayout_4">
-        <item>
-         <widget class="QTreeView" name="categories_view"/>
-        </item>
-       </layout>
-      </widget>
-     </widget>
-    </item>
-    <item>
-     <spacer name="verticalSpacer">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>880</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item>
-     <widget class="QScrollArea" name="properties_scroll">
-      <property name="widgetResizable">
-       <bool>true</bool>
-      </property>
-      <widget class="QWidget" name="scrollAreaWidgetContents">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>0</y>
-         <width>477</width>
-         <height>881</height>
-        </rect>
-       </property>
-      </widget>
-     </widget>
+         <widget class="QWidget" name="authors_tab">
+          <attribute name="title">
+           <string>Authors</string>
+          </attribute>
+          <layout class="QHBoxLayout" name="horizontalLayout_3">
+           <item>
+            <widget class="QTableView" name="authors_view">
+             <attribute name="horizontalHeaderCascadingSectionResizes">
+              <bool>false</bool>
+             </attribute>
+             <attribute name="horizontalHeaderStretchLastSection">
+              <bool>false</bool>
+             </attribute>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="categories_tab">
+          <attribute name="title">
+           <string>Categories</string>
+          </attribute>
+          <layout class="QHBoxLayout" name="horizontalLayout_4">
+           <item>
+            <widget class="QTreeView" name="categories_view"/>
+           </item>
+          </layout>
+         </widget>
+        </widget>
+        <widget class="QScrollArea" name="properties_scroll">
+         <property name="widgetResizable">
+          <bool>true</bool>
+         </property>
+         <widget class="QWidget" name="scrollAreaWidgetContents">
+          <property name="geometry">
+           <rect>
+            <x>0</x>
+            <y>0</y>
+            <width>704</width>
+            <height>868</height>
+           </rect>
+          </property>
+         </widget>
+        </widget>
+       </widget>
+      </item>
+      <item>
+       <widget class="QProgressBar" name="progress_bar">
+        <property name="value">
+         <number>0</number>
+        </property>
+        <property name="textVisible">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>
@@ -110,7 +117,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1012</width>
+     <width>1363</width>
      <height>24</height>
     </rect>
    </property>
@@ -129,7 +136,22 @@
     </widget>
     <addaction name="menuNew"/>
    </widget>
+   <widget class="QMenu" name="menuEdit">
+    <property name="title">
+     <string>Library</string>
+    </property>
+    <widget class="QMenu" name="menuBulk_rename">
+     <property name="title">
+      <string>Bulk rename</string>
+     </property>
+     <addaction name="rename_selection"/>
+     <addaction name="rename_all"/>
+    </widget>
+    <addaction name="menuBulk_rename"/>
+    <addaction name="action_move_library"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuEdit"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionAdd_shelf">
@@ -160,6 +182,21 @@
   <action name="action_add_category">
    <property name="text">
     <string>Category</string>
+   </property>
+  </action>
+  <action name="rename_selection">
+   <property name="text">
+    <string>Selection</string>
+   </property>
+  </action>
+  <action name="rename_all">
+   <property name="text">
+    <string>All</string>
+   </property>
+  </action>
+  <action name="action_move_library">
+   <property name="text">
+    <string>Move library</string>
    </property>
   </action>
  </widget>

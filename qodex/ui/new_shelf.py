@@ -3,14 +3,14 @@
 ################################################################################
 ## Form generated from reading UI file 'new_shelf.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.1.0
+## Created by: Qt User Interface Compiler version 6.1.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide6.QtCore import *
-from PySide6.QtGui import *
-from PySide6.QtWidgets import *
+from PySide6.QtCore import *  # type: ignore
+from PySide6.QtGui import *  # type: ignore
+from PySide6.QtWidgets import *  # type: ignore
 
 
 class Ui_NewShelfDialog(object):
@@ -18,36 +18,34 @@ class Ui_NewShelfDialog(object):
         if not NewShelfDialog.objectName():
             NewShelfDialog.setObjectName(u"NewShelfDialog")
         NewShelfDialog.resize(400, 300)
-        self.buttonBox = QDialogButtonBox(NewShelfDialog)
-        self.buttonBox.setObjectName(u"buttonBox")
-        self.buttonBox.setGeometry(QRect(30, 240, 341, 32))
-        self.buttonBox.setOrientation(Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QDialogButtonBox.Cancel|QDialogButtonBox.Ok)
-        self.widget = QWidget(NewShelfDialog)
-        self.widget.setObjectName(u"widget")
-        self.widget.setGeometry(QRect(50, 10, 324, 225))
-        self.gridLayout = QGridLayout(self.widget)
-        self.gridLayout.setObjectName(u"gridLayout")
-        self.gridLayout.setContentsMargins(0, 0, 0, 0)
-        self.label = QLabel(self.widget)
+        self.formLayout = QFormLayout(NewShelfDialog)
+        self.formLayout.setObjectName(u"formLayout")
+        self.label = QLabel(NewShelfDialog)
         self.label.setObjectName(u"label")
 
-        self.gridLayout.addWidget(self.label, 0, 0, 1, 1)
+        self.formLayout.setWidget(0, QFormLayout.LabelRole, self.label)
 
-        self.shelf_name = QLineEdit(self.widget)
+        self.shelf_name = QLineEdit(NewShelfDialog)
         self.shelf_name.setObjectName(u"shelf_name")
 
-        self.gridLayout.addWidget(self.shelf_name, 0, 1, 1, 1)
+        self.formLayout.setWidget(0, QFormLayout.FieldRole, self.shelf_name)
 
-        self.label_2 = QLabel(self.widget)
+        self.label_2 = QLabel(NewShelfDialog)
         self.label_2.setObjectName(u"label_2")
 
-        self.gridLayout.addWidget(self.label_2, 1, 0, 1, 1)
+        self.formLayout.setWidget(1, QFormLayout.LabelRole, self.label_2)
 
-        self.shelf_description = QTextEdit(self.widget)
+        self.shelf_description = QTextEdit(NewShelfDialog)
         self.shelf_description.setObjectName(u"shelf_description")
 
-        self.gridLayout.addWidget(self.shelf_description, 1, 1, 1, 1)
+        self.formLayout.setWidget(1, QFormLayout.FieldRole, self.shelf_description)
+
+        self.buttonBox = QDialogButtonBox(NewShelfDialog)
+        self.buttonBox.setObjectName(u"buttonBox")
+        self.buttonBox.setOrientation(Qt.Horizontal)
+        self.buttonBox.setStandardButtons(QDialogButtonBox.Cancel|QDialogButtonBox.Ok)
+
+        self.formLayout.setWidget(2, QFormLayout.SpanningRole, self.buttonBox)
 
 
         self.retranslateUi(NewShelfDialog)

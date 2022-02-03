@@ -1,5 +1,5 @@
 * Qodex Roadmap
-- [8/12] Document functions
+- [10/12] Document functions
   - [X] add existing authors to document
   - [X] view document in pdf viewer
   - [X] delete document from db
@@ -9,11 +9,14 @@
   - [X] refresh metadata
   - [X] populate document types from bibtex
   - [ ] process doi/isbn metadata properly
-  - [ ] mass rename
-  - [ ] move library to location
+  - [X] mass rename with progress bar
+    - [X] rename all
+    - [X] rename selection
+  - [X] move library to location with progress bar
   - [X] attach category
-- [0/1] shelves
-  - [ ] add document to shelf
+- [1/2] shelves
+  - [X] add document to shelf
+  - [ ] manage docs from shelf menu
 - [0/3] searches
   - [ ] search arxiv
   - [ ] search pubmed
@@ -24,4 +27,8 @@
   - [ ] tags?
   - [ ] search
   - [ ] settings?
+- [0/3] code quality
+  - [ ] typechecks
+  - [ ] reorganize dialogs
+  - [ ] consistently use item wrappers
   

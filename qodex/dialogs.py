@@ -11,11 +11,13 @@ from ui.new_category import Ui_NewCategoryDialog
 from ui.edit_category import Ui_EditCategory
 from ui.edit_document import Ui_EditDocument
 from ui.select_author import Ui_SelectAuthorDialog
+from ui.select_shelves import Ui_SelectShelvesDialog
+from ui.move_library import Ui_MoveLibrary
 
 from qodex.common import UpdateMode
 from qodex.db.settings import get_session
 from qodex.db import models
-from qodex.item_models import AuthorItem, CategoryItem
+from qodex.item_models import AuthorItem, CategoryItem, ShelfItem, DocumentItem
 from qodex.doctools.meta import MetaUpdater
 from qodex.doctools.utils import rename
 
@@ -73,18 +75,42 @@ class SelectAuthorDialog(QtWidgets.QDialog, Ui_SelectAuthorDialog):
             self.authors_model.appendRow(AuthorItem(author))
 
 
+class SelectShelvesDialog(QtWidgets.QDialog, Ui_SelectShelvesDialog):
+
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+        self.shelf_model = QtGui.QStandardItemModel()
+        self.shelf_view.setModel(self.shelf_model)
+
+        s = get_session()
+
+        all_authors = s.query(models.Shelf).all()
+
+        for author in all_authors:
+            self.shelf_model.appendRow(ShelfItem(author))
+
+
 class EditShelfView(QtWidgets.QWidget, Ui_EditShelf):
 
-    update = QtCore.Signal(models.Shelf, str, str)
+    update = QtCore.Signal(models.Shelf, QtCore.QModelIndex)
 
-    def __init__(self, shelf: models.Shelf, parent=None):
+    def __init__(self, shelf: models.Shelf, index=None, parent=None):
         super().__init__(parent=parent)
         self.setupUi(self)
         self.shelf = shelf
+        self.index = index
 
         self.shelf_name.setText(shelf.name)
         self.shelf_description.setText(shelf.description)
         self.save_button.clicked.connect(self._save_shelf)
+
+        self.documents_model = QtGui.QStandardItemModel()
+        self.documents.setModel(self.documents_model)
+        self.documents.customContextMenuRequested.connect(self._docs_context_menu)
+        for doc in self.shelf.documents:
+            doc_item = DocumentItem(doc)
+            self.documents_model.appendRow(doc_item)
 
     def _save_shelf(self, *args):
 
@@ -94,7 +120,30 @@ class EditShelfView(QtWidgets.QWidget, Ui_EditShelf):
         s.add(self.shelf)
         s.commit()
 
-        self.update.emit(self.shelf, 'shelves_root', 'shelf')
+        self.update.emit(self.shelf, self.index)
+
+    def _docs_context_menu(self, coords: QtCore.QPoint):
+
+        selection = self.documents.selectedIndexes()
+        menu = QtWidgets.QMenu(self)
+        add_to_shelf = QtGui.QAction('Add documents')
+        # add_to_shelf.triggered.connect(self._add_shelf)
+        menu.addAction(add_to_shelf)
+        if len(selection) > 0:
+            remove_from_shelf = QtGui.QAction('Remove from shelf')
+            remove_from_shelf.triggered.connect(lambda _: self._remove_documents(selection))
+            menu.addAction(remove_from_shelf)
+
+        result = menu.exec_(self.documents.viewport().mapToGlobal(coords))
+
+    def _remove_documents(self, selection: List[QtCore.QModelIndex]):
+
+        s = get_session()
+        for idx in sorted(selection, key=lambda index: index.row(), reverse=True):
+            doc_item = self.documents_model.itemFromIndex(idx)
+            self.shelf.documents.remove(doc_item.document)
+            self.documents_model.removeRow(idx.row())
+        s.commit()
 
 
 class EditAuthorView(QtWidgets.QWidget, Ui_EditAuthor):
@@ -202,8 +251,11 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
         self.index = index
         self.authors_model = QtGui.QStandardItemModel()
         self.categories_model = QtGui.QStandardItemModel()
+        self.shelf_model = QtGui.QStandardItemModel()
         self.categories_root = self.categories_model.invisibleRootItem()
         self.category.setModel(self.categories_model)
+        self.authors.setModel(self.authors_model)
+        self.shelves.setModel(self.shelf_model)
         self._show_data()
         self._set_up_signals()
         self._set_up_categories()
@@ -226,11 +278,13 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
         self.series.setText(self.doc.series)
         self.language.setText(self.doc.language)
 
-        self.authors.setModel(self.authors_model)
-
         for author in self.doc.authors:
             author_item = AuthorItem(author)
             self.authors_model.appendRow(author_item)
+
+        for shelf in self.doc.shelves:
+            shelf_item = ShelfItem(shelf)
+            self.shelf_model.appendRow(shelf_item)
 
     def _set_up_categories(self):
 
@@ -282,6 +336,7 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
         self.delete_button.clicked.connect(self._remove_document)
         self.view_button.clicked.connect(self._view_document)
         self.authors.customContextMenuRequested.connect(self._author_context_menu)
+        self.shelves.customContextMenuRequested.connect(self._shelf_context_menu)
 
     def _populate_types(self):
 
@@ -368,7 +423,21 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
             remove_authors.triggered.connect(lambda _: self._remove_authors(selection))
             menu.addAction(remove_authors)
 
-        result = menu.exec_(self.mapToGlobal(coords))
+        result = menu.exec_(self.authors.viewport().mapToGlobal(coords))
+
+    def _shelf_context_menu(self, coords: QtCore.QPoint):
+
+        selection = self.shelves.selectedIndexes()
+        menu = QtWidgets.QMenu(self)
+        add_to_shelf = QtGui.QAction('Add to shelf')
+        add_to_shelf.triggered.connect(self._add_shelf)
+        menu.addAction(add_to_shelf)
+        if len(selection) > 0:
+            remove_from_shelf = QtGui.QAction('Remove from shelf')
+            remove_from_shelf.triggered.connect(lambda _: self._remove_shelves(selection))
+            menu.addAction(remove_from_shelf)
+
+        result = menu.exec_(self.shelves.viewport().mapToGlobal(coords))
 
     @QtCore.Slot(models.Author)
     def update_author_list(self, author: models.Author):
@@ -388,6 +457,15 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
             self.authors_model.removeRow(idx.row())
         s.commit()
 
+    def _remove_shelves(self, selection: List[QtCore.QModelIndex]):
+
+        s = get_session()
+        for idx in sorted(selection, key=lambda index: index.row(), reverse=True):
+            shelf_item = self.shelf_model.itemFromIndex(idx)
+            self.doc.shelves.remove(shelf_item.shelf)
+            self.shelf_model.removeRow(idx.row())
+        s.commit()
+
     def _add_existing_author(self):
 
         dlg = SelectAuthorDialog()
@@ -398,6 +476,19 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
             for author in selected_authors:
                 self.doc.authors.append(author)
                 self.authors_model.appendRow(AuthorItem(author))
+            s.commit()
+            self.update.emit(self.doc, self.index, UpdateMode.UPDATE)
+
+    def _add_shelf(self):
+
+        dlg = SelectShelvesDialog()
+        if dlg.exec_():
+            selected_indexes = dlg.shelf_view.selectedIndexes()
+            selected_shelves = [dlg.shelf_model.itemFromIndex(index).shelf for index in selected_indexes]
+            s = get_session()
+            for shelf in selected_shelves:
+                self.doc.shelves.append(shelf)
+                self.shelf_model.appendRow(ShelfItem(shelf))
             s.commit()
             self.update.emit(self.doc, self.index, UpdateMode.UPDATE)
 
@@ -423,3 +514,16 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
                 s.commit()
                 self.path.setText(str(new_name))
                 self.update.emit(self.doc, self.index, UpdateMode.UPDATE)
+
+
+class MoveLibraryDialog(QtWidgets.QDialog, Ui_MoveLibrary):
+
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+        self.setupUi(self)
+        self.select_folder.clicked.connect(self._select_folder)
+
+    def _select_folder(self):
+
+        directory = QtWidgets.QFileDialog.getExistingDirectory(self)
+        self.library_path.setText(directory)
