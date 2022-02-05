@@ -1,19 +1,26 @@
 * Qodex Roadmap
-- [10/12] Document functions
+- [11/14] Document functions
   - [X] add existing authors to document
   - [X] view document in pdf viewer
   - [X] delete document from db
   - [X] rename document according to pattern
-  - [ ] import entire directory
+  - [X] import entire directory
   - [X] additional fields from doc
   - [X] refresh metadata
   - [X] populate document types from bibtex
   - [ ] process doi/isbn metadata properly
+  - [ ] make sure updates display correctly
   - [X] mass rename with progress bar
     - [X] rename all
     - [X] rename selection
   - [X] move library to location with progress bar
   - [X] attach category
+  - [ ] delete multiple docs
+  - [ ] refresh multiple docs
+- [0/1] authors
+  - [ ] delete
+    - [ ] single author from view
+    - [ ] multiple authors
 - [1/2] shelves
   - [X] add document to shelf
   - [ ] manage docs from shelf menu

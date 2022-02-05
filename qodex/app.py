@@ -1,4 +1,5 @@
 import logging
+import fs
 from pathlib import Path
 from logging import getLogger
 from PySide6 import QtWidgets, QtCore, QtGui, Qt
@@ -16,10 +17,7 @@ from qodex.dialogs import (
     EditDocumentView, MoveLibraryDialog
 )
 from qodex.item_models import ShelfItem, AuthorItem, CategoryItem, DocumentItem
-from qodex.doctools.pdf import extract_meta
-from qodex.doctools.meta import MetaUpdater
-from qodex.doctools.batch import RenameController, BulkMoveController
-
+from qodex.doctools.batch import RenameController, BulkMoveController, ImportController
 
 logger = getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -42,6 +40,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
         self.action_add_author.triggered.connect(self.new_author)
         self.action_add_category.triggered.connect(self.new_category)
         self.action_add_document.triggered.connect(self.new_document)
+        self.action_import_directory.triggered.connect(self._import_directory)
 
         self.rename_selection.triggered.connect(self._bulk_rename_selection)
         self.rename_all.triggered.connect(self._bulk_rename_all)
@@ -200,6 +199,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
         self.documents_model.clear()
         self._load_data(models.Document, DocumentItem, self.documents_model)
 
+    def _refresh_all_authors(self):
+        self.authors_model.clear()
+        self._load_data(models.Author, AuthorItem, self.authors_model)
+
     def _find_parent_category(self, category: models.Category):
 
         s = get_session()
@@ -287,22 +290,41 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
         filenames, filters = QtWidgets.QFileDialog.getOpenFileNames(
             self, 'Select file', str(home), '*.pdf')
 
+        created_docs = []
         for file in filenames:
             doc, created = get_or_create(models.Document, path=file)
-            # don't repeat work we've already done
             if created:
-                update_worker = MetaUpdater(doc.id, parent=self)
-                update_worker.finished.connect(update_worker.deleteLater)
-                update_worker.ready.connect(
-                    lambda: self._refresh_documents(
-                        doc,
-                        self.documents_model.createIndex(self.documents_model.rowCount(), 0)
-                    )
-                )
-                update_worker.start()
+                created_docs.append(doc.id)
 
-        self._load_data(models.Author, AuthorItem, self.authors_model)
-        self._load_data(models.Document, DocumentItem, self.documents_model)
+        self._handle_imports(created_docs)
+
+    def _import_directory(self):
+
+        home = Path.home()
+        path = Path(QtWidgets.QFileDialog.getExistingDirectory(
+            self, 'Select file', str(home)))
+
+        created_docs = []
+        for file in path.rglob('*.pdf'):
+            print(file)
+            doc, created = get_or_create(models.Document, path=str(file))
+            if created:
+                created_docs.append(doc.id)
+
+        self._handle_imports(created_docs)
+
+    def _handle_imports(self, doc_ids):
+
+        self.progress_bar.setMinimum(0)
+        self.progress_bar.setMaximum(len(doc_ids))
+
+        if len(doc_ids) > 0:
+            # don't repeat work we've already done
+            import_worker = ImportController(doc_ids)
+            import_worker.signals.progress.connect(lambda i: self.progress_bar.setValue(i))
+            import_worker.signals.ready.connect(self._refresh_all_docs)
+            import_worker.signals.ready.connect(self._refresh_all_authors)
+            self.thread_pool.start(import_worker)
 
     def _bulk_rename_all(self):
 

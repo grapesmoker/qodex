@@ -18,7 +18,7 @@ from qodex.common import UpdateMode
 from qodex.db.settings import get_session
 from qodex.db import models
 from qodex.item_models import AuthorItem, CategoryItem, ShelfItem, DocumentItem
-from qodex.doctools.meta import MetaUpdater
+from qodex.doctools.batch import ImportController
 from qodex.doctools.utils import rename
 
 
@@ -259,8 +259,12 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
         self._show_data()
         self._set_up_signals()
         self._set_up_categories()
+        self._thread_pool = QtCore.QThreadPool()
 
     def _show_data(self):
+
+        s = get_session()
+        s.refresh(self.doc)
 
         self.path.setText(self.doc.path)
         self.title.setText(self.doc.title)
@@ -402,10 +406,10 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
             self, title, msg, QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
 
         if really_refresh == QtWidgets.QMessageBox.Yes:
-            update_worker = MetaUpdater(self.doc.id, get_meta_from_file=False, parent=self)
-            update_worker.finished.connect(update_worker.deleteLater)
-            update_worker.finished.connect(self._show_data)
-            update_worker.start()
+            update_worker = ImportController([self.doc.id], get_meta_from_file=False, parent=self)
+            update_worker.signals.ready.connect(self._show_data)
+            update_worker.signals.ready.connect(lambda: self.update.emit(self.doc, self.index, UpdateMode.UPDATE))
+            self._thread_pool.start(update_worker)
 
     def _author_context_menu(self, coords: QtCore.QPoint):
 

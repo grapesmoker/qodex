@@ -1,5 +1,6 @@
 from pathlib import Path
 from qodex.db.models import Author, Document
+from typing import List, Tuple
 
 
 def rename(pattern: str, document: Document, file_ext: str = '.pdf'):

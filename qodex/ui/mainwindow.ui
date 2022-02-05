@@ -133,6 +133,8 @@
      <addaction name="action_add_document"/>
      <addaction name="action_add_author"/>
      <addaction name="action_add_category"/>
+     <addaction name="separator"/>
+     <addaction name="action_import_directory"/>
     </widget>
     <addaction name="menuNew"/>
    </widget>
@@ -197,6 +199,11 @@
   <action name="action_move_library">
    <property name="text">
     <string>Move library</string>
+   </property>
+  </action>
+  <action name="action_import_directory">
+   <property name="text">
+    <string>Import directory</string>
    </property>
   </action>
  </widget>
