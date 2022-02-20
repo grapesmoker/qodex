@@ -40,6 +40,8 @@ def upgrade():
                     sa.Column('id', sa.Integer(), nullable=False),
                     sa.Column('title', sa.String(), nullable=True),
                     sa.Column('path', sa.String(), nullable=True),
+                    sa.Column('document_type_id', sa.Integer(), nullable=True),
+                    sa.ForeignKeyConstraint(['document_type_id'], ['document_type.id'],),
                     sa.PrimaryKeyConstraint('id')
                     )
     op.create_index(op.f('ix_document_path'), 'document', ['path'], unique=False)

@@ -49,6 +49,7 @@ class Ui_QodexMain(object):
         self.splitter.setOrientation(Qt.Horizontal)
         self.main_tab_view = QTabWidget(self.splitter)
         self.main_tab_view.setObjectName(u"main_tab_view")
+        self.main_tab_view.setContextMenuPolicy(Qt.CustomContextMenu)
         self.shelf_tab = QWidget()
         self.shelf_tab.setObjectName(u"shelf_tab")
         self.verticalLayout = QVBoxLayout(self.shelf_tab)
@@ -66,6 +67,7 @@ class Ui_QodexMain(object):
         self.documents_view = QTableView(self.documents_tab)
         self.documents_view.setObjectName(u"documents_view")
         self.documents_view.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.documents_view.setSortingEnabled(True)
         self.documents_view.horizontalHeader().setCascadingSectionResizes(True)
 
         self.horizontalLayout_2.addWidget(self.documents_view)
@@ -148,7 +150,7 @@ class Ui_QodexMain(object):
 
         self.retranslateUi(QodexMain)
 
-        self.main_tab_view.setCurrentIndex(1)
+        self.main_tab_view.setCurrentIndex(2)
 
 
         QMetaObject.connectSlotsByName(QodexMain)

@@ -17,6 +17,7 @@
   - [X] attach category
   - [ ] delete multiple docs
   - [ ] refresh multiple docs
+  - [ ] sort by column
 - [0/1] authors
   - [ ] delete
     - [ ] single author from view

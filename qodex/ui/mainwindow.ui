@@ -23,8 +23,11 @@
          <enum>Qt::Horizontal</enum>
         </property>
         <widget class="QTabWidget" name="main_tab_view">
+         <property name="contextMenuPolicy">
+          <enum>Qt::CustomContextMenu</enum>
+         </property>
          <property name="currentIndex">
-          <number>1</number>
+          <number>2</number>
          </property>
          <widget class="QWidget" name="shelf_tab">
           <attribute name="title">
@@ -45,6 +48,9 @@
             <widget class="QTableView" name="documents_view">
              <property name="selectionBehavior">
               <enum>QAbstractItemView::SelectRows</enum>
+             </property>
+             <property name="sortingEnabled">
+              <bool>true</bool>
              </property>
              <attribute name="horizontalHeaderCascadingSectionResizes">
               <bool>true</bool>

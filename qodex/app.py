@@ -81,21 +81,24 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
         self.categories_view.setModel(self.categories_model)
         self.categories_view.clicked.connect(self._category_selected)
 
-        self._load_data(models.Shelf, ShelfItem, self.shelf_model)
-        self._load_data(models.Author, AuthorItem, self.authors_model)
-        self._load_data(models.Document, DocumentItem, self.documents_model)
+        self._load_data(models.Shelf, ShelfItem, self.shelf_model, sort_by='name')
+        self._load_data(models.Author, AuthorItem, self.authors_model, sort_by='last_name')
+        self._load_data(models.Document, DocumentItem, self.documents_model, sort_by='title')
         self._load_categories()
 
     @staticmethod
-    def _load_data(model, item_model, root):
+    def _load_data(model, item_model, root, sort_by=None):
 
         s = get_session()
-        data_items = s.query(model).all()
+        q = s.query(model)
+        if sort_by:
+            q = q.order_by(getattr(model, sort_by).asc())
+        data_items = q.all()
         for i, data_item in enumerate(data_items):
             item = item_model(data_item)
             children = []
             for col, display_field in enumerate(item_model.display_fields):
-                children.append(QtGui.QStandardItem(str(getattr(item.model, display_field))))
+                children.append(QtGui.QStandardItem(str(getattr(item.model, display_field) or '')))
             root.appendRow(children)
             root.setData(root.index(i, 0), data_item, QtCore.Qt.UserRole)
 
@@ -162,7 +165,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
     def _refresh_authors(self, instance: models.Author, index: QtCore.QModelIndex):
 
         for col, display_field in enumerate(AuthorItem.display_fields):
-            self.authors_model.setItem(index.row(), col, QtGui.QStandardItem(getattr(instance, display_field)))
+            self.authors_model.setItem(index.row(), col, QtGui.QStandardItem(getattr(instance, display_field) or ''))
 
         self.authors_model.setData(self.authors_model.index(index.row(), 0), instance, QtCore.Qt.UserRole)
 
