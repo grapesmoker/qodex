@@ -3,14 +3,14 @@
 ################################################################################
 ## Form generated from reading UI file 'new_author.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.1.0
+## Created by: Qt User Interface Compiler version 6.1.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide6.QtCore import *
-from PySide6.QtGui import *
-from PySide6.QtWidgets import *
+from PySide6.QtCore import *  # type: ignore
+from PySide6.QtGui import *  # type: ignore
+from PySide6.QtWidgets import *  # type: ignore
 
 
 class Ui_NewAuthorDialog(object):
@@ -35,12 +35,16 @@ class Ui_NewAuthorDialog(object):
         self.first_name = QLineEdit(NewAuthorDialog)
         self.first_name.setObjectName(u"first_name")
         self.first_name.setGeometry(QRect(98, 19, 288, 21))
+        self.first_name.setFocusPolicy(Qt.WheelFocus)
+        self.first_name.setLayoutDirection(Qt.LeftToRight)
         self.label_2 = QLabel(NewAuthorDialog)
         self.label_2.setObjectName(u"label_2")
         self.label_2.setGeometry(QRect(25, 81, 65, 21))
         self.label_3 = QLabel(NewAuthorDialog)
         self.label_3.setObjectName(u"label_3")
         self.label_3.setGeometry(QRect(10, 50, 80, 21))
+        QWidget.setTabOrder(self.first_name, self.middle_name)
+        QWidget.setTabOrder(self.middle_name, self.last_name)
 
         self.retranslateUi(NewAuthorDialog)
         self.buttonBox.accepted.connect(NewAuthorDialog.accept)

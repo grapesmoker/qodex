@@ -69,7 +69,7 @@ class SelectAuthorDialog(QtWidgets.QDialog, Ui_SelectAuthorDialog):
 
         s = get_session()
 
-        all_authors = s.query(models.Author).all()
+        all_authors = s.query(models.Author).order_by(models.Author.last_name).all()
 
         for author in all_authors:
             self.authors_model.appendRow(AuthorItem(author))

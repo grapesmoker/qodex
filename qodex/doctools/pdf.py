@@ -13,7 +13,7 @@ isbn_parser = pp.Or([
     pp.Literal('ISBN')
 ]) + pp.Optional(':') + pp.Regex('([0-9]|-)+').setResultsName('isbn')
 
-doi_parser = pp.Literal('DOI') + pp.Optional(':') + \
+doi_parser = pp.Or([pp.Literal('DOI'), pp.Literal('doi')]) + pp.Optional(':') + \
              pp.Regex('10\\.[0-9]{4,9}/[-._;()/:A-Za-z0-9]+').setResultsName('doi')
 
 

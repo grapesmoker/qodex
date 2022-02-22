@@ -27,7 +27,7 @@
           <enum>Qt::CustomContextMenu</enum>
          </property>
          <property name="currentIndex">
-          <number>2</number>
+          <number>1</number>
          </property>
          <widget class="QWidget" name="shelf_tab">
           <attribute name="title">
@@ -66,6 +66,15 @@
           <layout class="QHBoxLayout" name="horizontalLayout_3">
            <item>
             <widget class="QTableView" name="authors_view">
+             <property name="contextMenuPolicy">
+              <enum>Qt::CustomContextMenu</enum>
+             </property>
+             <property name="selectionBehavior">
+              <enum>QAbstractItemView::SelectRows</enum>
+             </property>
+             <property name="sortingEnabled">
+              <bool>true</bool>
+             </property>
              <attribute name="horizontalHeaderCascadingSectionResizes">
               <bool>false</bool>
              </attribute>
@@ -96,7 +105,7 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>704</width>
+            <width>73</width>
             <height>868</height>
            </rect>
           </property>
@@ -129,11 +138,11 @@
    </property>
    <widget class="QMenu" name="menuFile">
     <property name="title">
-     <string>File</string>
+     <string>&amp;File</string>
     </property>
     <widget class="QMenu" name="menuNew">
      <property name="title">
-      <string>New</string>
+      <string>&amp;New</string>
      </property>
      <addaction name="action_add_shelf"/>
      <addaction name="action_add_document"/>
@@ -143,23 +152,25 @@
      <addaction name="action_import_directory"/>
     </widget>
     <addaction name="menuNew"/>
+    <addaction name="separator"/>
+    <addaction name="action_quit"/>
    </widget>
-   <widget class="QMenu" name="menuEdit">
+   <widget class="QMenu" name="menu_library">
     <property name="title">
-     <string>Library</string>
+     <string>&amp;Library</string>
     </property>
-    <widget class="QMenu" name="menuBulk_rename">
+    <widget class="QMenu" name="menu_bulk_rename">
      <property name="title">
-      <string>Bulk rename</string>
+      <string>&amp;Bulk rename</string>
      </property>
      <addaction name="rename_selection"/>
      <addaction name="rename_all"/>
     </widget>
-    <addaction name="menuBulk_rename"/>
+    <addaction name="menu_bulk_rename"/>
     <addaction name="action_move_library"/>
    </widget>
    <addaction name="menuFile"/>
-   <addaction name="menuEdit"/>
+   <addaction name="menu_library"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionAdd_shelf">
@@ -176,30 +187,48 @@
    <property name="text">
     <string>Shelf</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+N, S</string>
+   </property>
   </action>
   <action name="action_add_document">
    <property name="text">
     <string>Document</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+N, D</string>
    </property>
   </action>
   <action name="action_add_author">
    <property name="text">
     <string>Author</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+N, A</string>
+   </property>
   </action>
   <action name="action_add_category">
    <property name="text">
     <string>Category</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+N, C</string>
    </property>
   </action>
   <action name="rename_selection">
    <property name="text">
     <string>Selection</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+R, S</string>
+   </property>
   </action>
   <action name="rename_all">
    <property name="text">
     <string>All</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+R, A</string>
    </property>
   </action>
   <action name="action_move_library">
@@ -210,6 +239,14 @@
   <action name="action_import_directory">
    <property name="text">
     <string>Import directory</string>
+   </property>
+  </action>
+  <action name="action_quit">
+   <property name="text">
+    <string>Quit</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
    </property>
   </action>
  </widget>

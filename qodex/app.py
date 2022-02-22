@@ -6,6 +6,7 @@ from PySide6 import QtWidgets, QtCore, QtGui, Qt
 from PySide6.QtUiTools import QUiLoader
 from pprint import pprint
 from ui.mainwindow import Ui_QodexMain
+from rich.logging import RichHandler
 
 from qodex.common import UpdateMode
 from qodex.db import models
@@ -19,6 +20,9 @@ from qodex.dialogs import (
 from qodex.item_models import ShelfItem, AuthorItem, CategoryItem, DocumentItem
 from qodex.doctools.batch import RenameController, BulkMoveController, ImportController
 
+logging.basicConfig(
+    level='INFO', format='%(message)s', datefmt='[%X]', handlers=[RichHandler()]
+)
 logger = getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -40,7 +44,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
         self.action_add_author.triggered.connect(self.new_author)
         self.action_add_category.triggered.connect(self.new_category)
         self.action_add_document.triggered.connect(self.new_document)
+        self.action_quit.triggered.connect(self.close)
         self.action_import_directory.triggered.connect(self._import_directory)
+        self.authors_view.customContextMenuRequested.connect(self._author_context_menu)
 
         self.rename_selection.triggered.connect(self._bulk_rename_selection)
         self.rename_all.triggered.connect(self._bulk_rename_all)
@@ -109,7 +115,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
             models.Category.parent_id == None
         ).all()
 
-        self.categories_root.removeRows(0, self.categories_root.rowCount())
+        self.categories_model.clear()
+        self.categories_root = self.categories_model.invisibleRootItem()
 
         def recursive_add_category(root, category: models.Category):
             item = CategoryItem(category)
@@ -162,12 +169,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
         self.properties_scroll.setWidget(widget)
         widget.show()
 
-    def _refresh_authors(self, instance: models.Author, index: QtCore.QModelIndex):
+    def _refresh_authors(self, instance: models.Author, index: QtCore.QModelIndex, mode=UpdateMode.UPDATE):
 
-        for col, display_field in enumerate(AuthorItem.display_fields):
-            self.authors_model.setItem(index.row(), col, QtGui.QStandardItem(getattr(instance, display_field) or ''))
+        if mode == UpdateMode.UPDATE:
+            for col, display_field in enumerate(AuthorItem.display_fields):
+                self.authors_model.setItem(index.row(), col, QtGui.QStandardItem(getattr(instance, display_field) or ''))
 
-        self.authors_model.setData(self.authors_model.index(index.row(), 0), instance, QtCore.Qt.UserRole)
+            self.authors_model.setData(self.authors_model.index(index.row(), 0), instance, QtCore.Qt.UserRole)
+        elif mode == UpdateMode.DELETE:
+            self.authors_model.removeRow(index.row())
+            widget = self.properties_scroll.takeWidget()
+            if widget:
+                widget.deleteLater()
 
     def _refresh_shelves(self, instance: models.Shelf, index: QtCore.QModelIndex):
 
@@ -187,7 +200,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
         elif mode == UpdateMode.DELETE:
             self.documents_model.removeRow(index.row())
             widget = self.properties_scroll.takeWidget()
-            widget.deleteLater()
+            if widget:
+                widget.deleteLater()
 
     def _refresh_categories(self, *_):
 
@@ -392,3 +406,38 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
                 move_worker.signals.progress.connect(lambda i: self.progress_bar.setValue(i))
                 move_worker.signals.ready.connect(self._refresh_all_docs)
                 self.thread_pool.start(move_worker)
+
+    def _author_context_menu(self, coords: QtCore.QPoint):
+
+        print(coords)
+        selection = self.authors_view.selectedIndexes()
+        if len(selection) > 0:
+            menu = QtWidgets.QMenu(self)
+            remove_authors = QtGui.QAction('Remove authors from library')
+            remove_authors.triggered.connect(lambda _: self._remove_authors(selection))
+            menu.addAction(remove_authors)
+
+            result = menu.exec_(self.authors_view.viewport().mapToGlobal(coords))
+
+    def _remove_authors(self, selection):
+
+        s = get_session()
+        selected_rows = sorted({selected.row() for selected in selection}, reverse=True)
+        authors_to_remove = []
+        indices_to_remove = []
+        for idx in selected_rows:
+            row_idx = self.authors_model.index(idx, 0)
+            author_item = self.authors_model.itemData(row_idx)[QtCore.Qt.UserRole]
+            authors_to_remove.append(author_item)
+            indices_to_remove.append(row_idx)
+
+        msg = 'Are you sure you want to remove the following authors?\n'
+        msg = msg + '\n'.join([str(author) for author in authors_to_remove])
+
+        really_delete = QtWidgets.QMessageBox.question(
+            self, 'Delete?', msg, QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+        if really_delete == QtWidgets.QMessageBox.Yes:
+            for idx, author in zip(indices_to_remove, authors_to_remove):
+                s.delete(author)
+                self._refresh_authors(author, idx, mode=UpdateMode.DELETE)
+            s.commit()

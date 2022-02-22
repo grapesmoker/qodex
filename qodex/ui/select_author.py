@@ -22,7 +22,8 @@ class Ui_SelectAuthorDialog(object):
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.authors_view = QListView(SelectAuthorDialog)
         self.authors_view.setObjectName(u"authors_view")
-        self.authors_view.setSelectionMode(QAbstractItemView.MultiSelection)
+        self.authors_view.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.authors_view.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
         self.verticalLayout.addWidget(self.authors_view)
 

@@ -1,5 +1,18 @@
 import datetime
+import json
+import multiprocessing
+import os
 import time
+import tempfile
+import pytesseract
+import subprocess
+import logging
+from uuid import uuid4
+from PIL import Image
+from more_itertools import chunked
+from rich.progress import Progress, BarColumn, TimeRemainingColumn
+from rich.logging import RichHandler
+from functools import partial
 
 import isbnlib
 from PySide6.QtCore import QObject, QThread, QMutex, Slot, Signal, QRunnable
@@ -8,11 +21,11 @@ from crossref_commons.retrieval import get_publication_as_json
 from qodex.db.models import Document, Category, Author
 from qodex.db.settings import get_session
 from qodex.db.utils import get_or_create
-from qodex.doctools.pdf import extract_meta
+from qodex.doctools.pdf import extract_meta, isbn_parser, doi_parser
 from qodex.doctools.utils import rename
 from qodex.common import WorkerSignals
 
-from typing import List
+from typing import List, Set, Iterable
 from multiprocessing import Pool
 from pathlib import Path
 from logging import getLogger
@@ -21,6 +34,9 @@ import shutil
 
 
 mutex = QMutex()
+logging.basicConfig(
+    level='INFO', format='%(message)s', datefmt='[%X]', handlers=[RichHandler(markup=True)]
+)
 logger = getLogger(__name__)
 
 
@@ -41,7 +57,6 @@ class RenameController(QRunnable):
             futures = pool.starmap_async(self._rename, args)
             for i, result in enumerate(futures.get()):
                 self.signals.progress.emit(i + 1)
-                print(result)
         self.signals.ready.emit()
 
     @staticmethod
@@ -96,8 +111,6 @@ class BulkMoveController(QRunnable):
         for category in all_categories:
             ancestor_chain = map(str, category.get_ancestor_chain()[::-1])
             target_dir = self._base_path / '/'.join(ancestor_chain) / str(category)
-            print(ancestor_chain, category)
-            print(target_dir)
             if not target_dir.exists():
                 target_dir.mkdir(parents=True, exist_ok=True)
 
@@ -166,7 +179,6 @@ class ImportController(QRunnable):
             futures = pool.starmap_async(self._update_doc_meta, args)
             for i, result in enumerate(futures.get()):
                 self.signals.progress.emit(i + 1)
-                print(result)
         self.signals.ready.emit()
 
     @staticmethod
@@ -181,8 +193,6 @@ class ImportController(QRunnable):
             logger.warning(f'Could not fetch ISBN data: {ex}')
             isbn_meta = {}
 
-        print(isbn_meta)
-
         try:
             if meta['doi']:
                 doi_meta = get_publication_as_json(meta['doi'])
@@ -191,8 +201,6 @@ class ImportController(QRunnable):
         except Exception as ex:
             logger.warning(f'Could not fetch DOI data: {ex}')
             doi_meta = {}
-
-        print(doi_meta)
 
         return isbn_meta, doi_meta
 
@@ -249,7 +257,6 @@ class ImportController(QRunnable):
 
         try:
             if doi_meta:
-                print('doi')
                 doc.doi = doi_meta.get('DOI', None)
                 date_created = doi_meta.get('created', None)
                 if date_created:
@@ -271,3 +278,141 @@ class ImportController(QRunnable):
         session.add(doc)
         session.commit()
         mutex.unlock()
+
+
+class OCRController:
+
+    def __init__(self, import_path: Path, output_file: Path, pages: int = 10, processes: int = None):
+
+        self._import_path = import_path
+        self._pdf_list = sorted(import_path.rglob('*.pdf'))
+        self._pages = pages
+        self._curdir = Path(os.curdir).resolve()
+        self._tmpdir = Path(str(tempfile.mkdtemp(prefix='.', dir=self._curdir)))
+        self._processes = processes or multiprocessing.cpu_count()
+        self._output_file = output_file
+        self._output_file = output_file
+
+    @staticmethod
+    def convert_pdf_to_images(pdf_path: Path, pages: int, tmpdir: Path):
+
+        png_prefix = uuid4()
+        pdf_pages = f'{pdf_path}[0-{pages - 1}]'
+        args = ['convert',
+                '-density',
+                '300',
+                '-colorspace',
+                'Gray',
+                '-background',
+                'white',
+                '-alpha',
+                'off',
+                pdf_pages,
+                f'{tmpdir}/{png_prefix}.png']
+
+        result = subprocess.run(args, capture_output=True)
+        result.check_returncode()
+
+        png_paths = [tmpdir / f'{png_prefix}-{i}.png' for i in range(pages)]
+
+        return png_paths
+
+    @staticmethod
+    def ocr_page_metadata(page_path: Path):
+
+        text = pytesseract.image_to_string(Image.open(page_path))
+        isbn_results = isbn_parser.scan_string(text)
+        doi_results = doi_parser.scan_string(text)
+
+        meta = {'isbn-10': None, 'isbn-13': None, 'doi': None}
+        for result in isbn_results:
+            parse_result = result[0]
+            isbn = parse_result.isbn.replace('-', '')
+            if len(isbn) == 13:
+                meta['isbn-13'] = isbn
+            elif len(isbn) == 10:
+                meta['isbn-10'] = isbn
+
+        for result in doi_results:
+            parse_result = result[0]
+            doi = parse_result.doi
+            meta['doi'] = doi
+            # only need one DOI
+            break
+
+        return meta
+
+    @staticmethod
+    def _prune_existing_files(pdf_list: Iterable[Path]) -> List[Path]:
+
+        s = get_session()
+        existing_files = {Path(item.path) for item in s.query(Document).all()}
+        target_files = set(pdf_list)
+        files_to_get = target_files - existing_files
+        return sorted(files_to_get)
+
+    def run(self):
+
+        logger.info(f'Initiating extraction of {len(self._pdf_list)} files.')
+        pdf_list = OCRController._prune_existing_files(self._pdf_list)
+        # args = [(pdf, self._pages, self._tmpdir) for pdf in self._pdf_list]
+        results = []
+        func = partial(OCRController.extract_meta, self._pages, self._tmpdir)
+        s = get_session()
+
+        try:
+            with Progress("[progress.description]{task.description}",
+                          BarColumn(),
+                          "{task.completed} of {task.total}",
+                          TimeRemainingColumn()) as progress:
+                def update_progress(meta):
+                    doc = {'path': meta['path'],
+                           'isbn': meta['isbn-13'] or meta['isbn-10'],
+                           'doi': meta['doi'],
+                           'title': Path(meta['path']).stem}
+                    doc = Document(**doc)
+                    s.add(doc)
+                    s.commit()
+                    progress.update(ocr_task, advance=1, description=f'[green]{Path(meta["path"]).name}')
+
+                ocr_task = progress.add_task('[green]Extracting metadata...', total=len(self._pdf_list))
+
+                with Pool(processes=self._processes) as pool:
+                    futures = [pool.apply_async(func, (pdf, ), callback=update_progress)
+                               for pdf in pdf_list]
+                    pool.close()
+                    pool.join()
+
+                    for future in futures:
+                        result = future.get()
+                        results.append(result)
+                        # doc = Document(**result)
+                        # s.add(doc)
+                        # s.commit()
+                        # if len(results) % 100 == 0:
+                        #     with open(self._output_file, 'w') as f:
+                        #         json.dump(results, f, indent=4)
+
+        finally:
+            shutil.rmtree(self._tmpdir)
+
+        with open(self._output_file, 'w') as f:
+            json.dump(results, f, indent=4)
+
+    @staticmethod
+    def extract_meta(page_count, tmpdir, pdf: Path):
+
+        result = {'path': str(pdf), 'isbn-10': None, 'isbn-13': None, 'doi': None}
+        logger.debug(f'Converting {page_count} pages of {pdf} to images')
+        pages = OCRController.convert_pdf_to_images(pdf, page_count, tmpdir)
+        for i, page in enumerate(pages, start=1):
+            logger.debug(f'Running OCR on page {i} of {pdf}')
+            meta = OCRController.ocr_page_metadata(page)
+            if meta['isbn-10'] is not None or meta['isbn-13'] is not None or meta['doi'] is not None:
+                result.update(meta)
+                break
+
+        for page in pages:
+            page.unlink(missing_ok=True)
+
+        return result
