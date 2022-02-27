@@ -282,10 +282,12 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
         self.series.setText(self.doc.series)
         self.language.setText(self.doc.language)
 
+        self.authors_model.clear()
         for author in self.doc.authors:
             author_item = AuthorItem(author)
             self.authors_model.appendRow(author_item)
 
+        self.shelf_model.clear()
         for shelf in self.doc.shelves:
             shelf_item = ShelfItem(shelf)
             self.shelf_model.appendRow(shelf_item)
@@ -400,10 +402,12 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
 
     def _refresh_metadata(self, *args):
 
-        title = 'Refresh metadata?'
-        msg = 'Metadata will be replaced by any data that is obtained from metadata servers. Continue?'
-        really_refresh = QtWidgets.QMessageBox.question(
-            self, title, msg, QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+        # title = 'Refresh metadata?'
+        # msg = 'Metadata will be replaced by any data that is obtained from metadata servers. Continue?'
+        # really_refresh = QtWidgets.QMessageBox.question(
+        #     self, title, msg, QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+
+        really_refresh = QtWidgets.QMessageBox.Yes
 
         if really_refresh == QtWidgets.QMessageBox.Yes:
             update_worker = ImportController([self.doc.id], get_meta_from_file=False, parent=self)

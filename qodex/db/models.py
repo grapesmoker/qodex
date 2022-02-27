@@ -114,7 +114,10 @@ class Author(Base):
     documents = relationship('Document', secondary=author_documents, back_populates='authors')
 
     def __str__(self):
-        return '{}, {} {}'.format(self.last_name or '', self.first_name or '', self.middle_name or '')
+        if self.last_name in {None, ''} and self.middle_name in {None, ''}:
+            return f'{self.first_name or ""}'
+        else:
+            return '{}, {} {}'.format(self.last_name or '', self.first_name or '', self.middle_name or '')
 
 
 class Category(Base):

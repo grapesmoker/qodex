@@ -23,6 +23,7 @@
   - [ ] delete
     - [ ] single author from view
     - [ ] multiple authors
+  - [ ] refresh authors
 - [1/2] shelves
   - [X] add document to shelf
   - [ ] manage docs from shelf menu
@@ -36,7 +37,7 @@
   - [ ] export bib entry
 - [0/4] features
   - [ ] tags?
-  - [ ] search
+  - [ ] filters
   - [ ] settings?
   - [ ] key shortcuts
 - [0/3] code quality

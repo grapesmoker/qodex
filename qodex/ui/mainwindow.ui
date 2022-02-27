@@ -46,6 +46,12 @@
           <layout class="QHBoxLayout" name="horizontalLayout_2">
            <item>
             <widget class="QTableView" name="documents_view">
+             <property name="contextMenuPolicy">
+              <enum>Qt::CustomContextMenu</enum>
+             </property>
+             <property name="editTriggers">
+              <set>QAbstractItemView::NoEditTriggers</set>
+             </property>
              <property name="selectionBehavior">
               <enum>QAbstractItemView::SelectRows</enum>
              </property>
@@ -91,7 +97,11 @@
           </attribute>
           <layout class="QHBoxLayout" name="horizontalLayout_4">
            <item>
-            <widget class="QTreeView" name="categories_view"/>
+            <widget class="QTreeView" name="categories_view">
+             <property name="editTriggers">
+              <set>QAbstractItemView::NoEditTriggers</set>
+             </property>
+            </widget>
            </item>
           </layout>
          </widget>
@@ -169,8 +179,18 @@
     <addaction name="menu_bulk_rename"/>
     <addaction name="action_move_library"/>
    </widget>
+   <widget class="QMenu" name="menu_Navigation">
+    <property name="title">
+     <string>&amp;Navigation</string>
+    </property>
+    <addaction name="action_forward"/>
+    <addaction name="action_backward"/>
+    <addaction name="separator"/>
+    <addaction name="action_refresh"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menu_library"/>
+   <addaction name="menu_Navigation"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionAdd_shelf">
@@ -247,6 +267,27 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Q</string>
+   </property>
+  </action>
+  <action name="action_forward">
+   <property name="text">
+    <string>&amp;Forward</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+F</string>
+   </property>
+  </action>
+  <action name="action_backward">
+   <property name="text">
+    <string>&amp;Backward</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+B</string>
+   </property>
+  </action>
+  <action name="action_refresh">
+   <property name="text">
+    <string>&amp;Refresh</string>
    </property>
   </action>
  </widget>

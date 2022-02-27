@@ -35,9 +35,11 @@ import shutil
 
 mutex = QMutex()
 logging.basicConfig(
-    level='INFO', format='%(message)s', datefmt='[%X]', handlers=[RichHandler(markup=True)]
+    level='DEBUG', format='%(message)s', datefmt='[%X]', handlers=[RichHandler(markup=True)]
 )
 logger = getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logger.addHandler(RichHandler(markup=True))
 
 
 class RenameController(QRunnable):
@@ -176,13 +178,13 @@ class ImportController(QRunnable):
 
         with Pool() as pool:
             args = [(doc_id, self._get_meta_from_file) for doc_id in self._document_ids]
-            futures = pool.starmap_async(self._update_doc_meta, args)
+            futures = pool.starmap_async(self.update_doc_meta, args)
             for i, result in enumerate(futures.get()):
                 self.signals.progress.emit(i + 1)
         self.signals.ready.emit()
 
     @staticmethod
-    def fetch_meta(meta):
+    def _fetch_meta(meta):
 
         try:
             if meta['isbn']:
@@ -216,19 +218,24 @@ class ImportController(QRunnable):
             middle_name = ' '.join(author[1:-1])
         else:
             middle_name = None
-        mutex.lock()
-        author, created = get_or_create(Author,
-                                        first_name=first_name,
-                                        last_name=last_name,
-                                        middle_name=middle_name)
-        if created:
-            author.documents.append(doc)
-            session.add(author)
-            session.commit()
-        mutex.unlock()
+        try:
+            mutex.lock()
+            author, created = get_or_create(Author,
+                                            first_name=first_name,
+                                            last_name=last_name,
+                                            middle_name=middle_name)
+            if created or doc not in author.documents:
+                author.documents.append(doc)
+                session.add(author)
+                session.commit()
+        except Exception as ex:
+            logger.error(f'Could not add author information: {ex}')
+            session.rollback()
+        finally:
+            mutex.unlock()
 
     @staticmethod
-    def _update_doc_meta(doc_id: Document, get_meta_from_file: bool):
+    def update_doc_meta(doc_id: Document, get_meta_from_file: bool):
 
         session = get_session()
         doc = session.query(Document).get(doc_id)
@@ -238,7 +245,7 @@ class ImportController(QRunnable):
         else:
             meta = {'isbn': doc.isbn, 'doi': doc.doi}
 
-        isbn_meta, doi_meta = ImportController.fetch_meta(meta)
+        isbn_meta, doi_meta = ImportController._fetch_meta(meta)
 
         try:
             if isbn_meta:
@@ -280,18 +287,21 @@ class ImportController(QRunnable):
         mutex.unlock()
 
 
-class OCRController:
+class CLIImportController:
 
-    def __init__(self, import_path: Path, output_file: Path, pages: int = 10, processes: int = None):
+    def __init__(self, import_path: Path, output_file: Path,
+                 pages: int = 10, processes: int = None, ocr_meta: bool = False):
 
         self._import_path = import_path
         self._pdf_list = sorted(import_path.rglob('*.pdf'))
         self._pages = pages
         self._curdir = Path(os.curdir).resolve()
         self._tmpdir = Path(str(tempfile.mkdtemp(prefix='.', dir=self._curdir)))
+        # tesseract runs 4 threads at a time
         self._processes = processes or multiprocessing.cpu_count()
         self._output_file = output_file
         self._output_file = output_file
+        self._ocr_meta = ocr_meta
 
     @staticmethod
     def convert_pdf_to_images(pdf_path: Path, pages: int, tmpdir: Path):
@@ -320,7 +330,19 @@ class OCRController:
     @staticmethod
     def ocr_page_metadata(page_path: Path):
 
-        text = pytesseract.image_to_string(Image.open(page_path))
+        text_file = page_path.parent / page_path.name.replace('.png', '.txt')
+        args = [
+            'tesseract',
+            '--dpi',
+            '300',
+            str(page_path),
+            str(text_file).replace('.txt', '')
+        ]
+
+        subprocess.run(args, capture_output=True)
+        with open(text_file) as f:
+            text = f.read()
+        # text = pytesseract.image_to_string(Image.open(page_path))
         isbn_results = isbn_parser.scan_string(text)
         doi_results = doi_parser.scan_string(text)
 
@@ -353,11 +375,10 @@ class OCRController:
 
     def run(self):
 
-        logger.info(f'Initiating extraction of {len(self._pdf_list)} files.')
-        pdf_list = OCRController._prune_existing_files(self._pdf_list)
+        pdf_list = CLIImportController._prune_existing_files(self._pdf_list)
         # args = [(pdf, self._pages, self._tmpdir) for pdf in self._pdf_list]
         results = []
-        func = partial(OCRController.extract_meta, self._pages, self._tmpdir)
+        func = partial(CLIImportController.extract_meta, self._pages, self._tmpdir)
         s = get_session()
 
         try:
@@ -375,23 +396,24 @@ class OCRController:
                     s.commit()
                     progress.update(ocr_task, advance=1, description=f'[green]{Path(meta["path"]).name}')
 
-                ocr_task = progress.add_task('[green]Extracting metadata...', total=len(self._pdf_list))
+                logger.info(f'[green]Initiating metadata extraction via OCR of {len(pdf_list)} files.')
+                ocr_task = progress.add_task('[green]Extracting metadata...', total=len(pdf_list))
 
-                with Pool(processes=self._processes) as pool:
-                    futures = [pool.apply_async(func, (pdf, ), callback=update_progress)
-                               for pdf in pdf_list]
-                    pool.close()
-                    pool.join()
+                if self._ocr_meta:
+                    with Pool(processes=self._processes) as pool:
+                        futures = [pool.apply_async(func, (pdf, ), callback=update_progress)
+                                   for pdf in pdf_list]
+                        pool.close()
+                        pool.join()
 
-                    for future in futures:
-                        result = future.get()
-                        results.append(result)
-                        # doc = Document(**result)
-                        # s.add(doc)
-                        # s.commit()
-                        # if len(results) % 100 == 0:
-                        #     with open(self._output_file, 'w') as f:
-                        #         json.dump(results, f, indent=4)
+                        for future in futures:
+                            result = future.get()
+                            results.append(result)
+                else:
+                    logger.info(f'[green]Directly importing {len(pdf_list)} files without extracting metadata')
+                    for pdf in pdf_list:
+                        meta = {'path': str(pdf), 'title': pdf.stem}
+                        update_progress(meta)
 
         finally:
             shutil.rmtree(self._tmpdir)
@@ -404,10 +426,11 @@ class OCRController:
 
         result = {'path': str(pdf), 'isbn-10': None, 'isbn-13': None, 'doi': None}
         logger.debug(f'Converting {page_count} pages of {pdf} to images')
-        pages = OCRController.convert_pdf_to_images(pdf, page_count, tmpdir)
+        pages = CLIImportController.convert_pdf_to_images(pdf, page_count, tmpdir)
+
         for i, page in enumerate(pages, start=1):
             logger.debug(f'Running OCR on page {i} of {pdf}')
-            meta = OCRController.ocr_page_metadata(page)
+            meta = CLIImportController.ocr_page_metadata(page)
             if meta['isbn-10'] is not None or meta['isbn-13'] is not None or meta['doi'] is not None:
                 result.update(meta)
                 break

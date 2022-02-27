@@ -1,5 +1,8 @@
 import logging
+from typing import Optional
+
 import fs
+from enum import Enum
 from pathlib import Path
 from logging import getLogger
 from PySide6 import QtWidgets, QtCore, QtGui, Qt
@@ -15,7 +18,7 @@ from qodex.db.settings import get_session
 from qodex.dialogs import (
     NewShelfDialog, NewAuthorDialog, NewCategoryDialog,
     EditShelfView, EditAuthorView, EditCategoryView,
-    EditDocumentView, MoveLibraryDialog
+    EditDocumentView, MoveLibraryDialog, SelectAuthorDialog
 )
 from qodex.item_models import ShelfItem, AuthorItem, CategoryItem, DocumentItem
 from qodex.doctools.batch import RenameController, BulkMoveController, ImportController
@@ -32,6 +35,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
     author_added = QtCore.Signal(models.Author)
     document_added = QtCore.Signal(models.Document)
 
+    class MainTabType(Enum):
+
+        Shelves = 'shelves'
+        Authors = 'authors'
+        Documents = 'Documents'
+        Categories = 'Categories'
+
+    class NavDirection(Enum):
+
+        Forward = 1
+        Backward = -1
+
     def __init__(self):
         super().__init__()
         self.setupUi(self)
@@ -46,12 +61,22 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
         self.action_add_document.triggered.connect(self.new_document)
         self.action_quit.triggered.connect(self.close)
         self.action_import_directory.triggered.connect(self._import_directory)
+        self.action_refresh.triggered.connect(self._refresh_view)
         self.authors_view.customContextMenuRequested.connect(self._author_context_menu)
+        self.documents_view.customContextMenuRequested.connect(self._document_context_menu)
 
         self.rename_selection.triggered.connect(self._bulk_rename_selection)
         self.rename_all.triggered.connect(self._bulk_rename_all)
         self.action_move_library.triggered.connect(self._move_library)
         self.splitter.setSizes([10000, 10000])
+
+        self.action_forward.triggered.connect(lambda _: self._next_or_previous(self.NavDirection.Forward))
+        self.action_backward.triggered.connect(lambda _: self._next_or_previous(self.NavDirection.Backward))
+        self.selected_tab = None
+
+        self.selected_tab_map = {self.MainTabType.Authors: (self.authors_view, self.authors_model),
+                                 self.MainTabType.Shelves: (self.shelf_view, self.shelf_model),
+                                 self.MainTabType.Documents:  (self.documents_view, self.documents_model)}
 
     def _setup_models(self):
 
@@ -100,6 +125,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
         if sort_by:
             q = q.order_by(getattr(model, sort_by).asc())
         data_items = q.all()
+        root.clear()
         for i, data_item in enumerate(data_items):
             item = item_model(data_item)
             children = []
@@ -130,6 +156,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
 
     def _shelf_selected(self, index: QtCore.QModelIndex):
 
+        self.selected_tab = self.MainTabType.Shelves
         row_idx = self.shelf_model.index(index.row(), 0)
         data_item = self.shelf_model.itemData(row_idx)[QtCore.Qt.UserRole]
 
@@ -140,6 +167,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
 
     def _document_selected(self, index: QtCore.QModelIndex):
 
+        self.selected_tab = self.MainTabType.Documents
         row_idx = self.documents_model.index(index.row(), 0)
         data_item = self.documents_model.itemData(row_idx)[QtCore.Qt.UserRole]
 
@@ -152,6 +180,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
 
     def _author_selected(self, index: QtCore.QModelIndex):
 
+        self.selected_tab = self.MainTabType.Authors
         row_idx = self.authors_model.index(index.row(), 0)
         data_item = self.authors_model.itemData(row_idx)[QtCore.Qt.UserRole]
 
@@ -162,12 +191,22 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
 
     def _category_selected(self, index: QtCore.QModelIndex, *args):
 
+        self.selected_tab = self.MainTabType.Categories
         data_item = self.categories_model.itemFromIndex(index).category
 
         widget = EditCategoryView(data_item, index)
         widget.update.connect(self._refresh_categories)
         self.properties_scroll.setWidget(widget)
         widget.show()
+
+    def _refresh_view(self):
+
+        if self.selected_tab == self.MainTabType.Shelves:
+            self._load_data(models.Shelf, ShelfItem, self.shelf_model, sort_by='name')
+        elif self.selected_tab == self.MainTabType.Authors:
+            self._load_data(models.Author, AuthorItem, self.authors_model, sort_by='last_name')
+        elif self.selected_tab == self.MainTabType.Documents:
+            self._load_data(models.Document, DocumentItem, self.documents_model, sort_by='title')
 
     def _refresh_authors(self, instance: models.Author, index: QtCore.QModelIndex, mode=UpdateMode.UPDATE):
 
@@ -251,7 +290,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
                 msg.setText(f'A shelf named "{shelf.name}" already exists.')
                 msg.exec_()
 
-    def new_author(self, *_):
+    def new_author(self, *_) -> Optional[models.Author]:
 
         dlg = NewAuthorDialog()
         if dlg.exec_():
@@ -272,6 +311,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
                 msg.setText(f'An author named "{author}" already exists.')
                 msg.exec_()
 
+            return author
+
     def new_category(self):
 
         s = get_session()
@@ -281,25 +322,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
 
         dlg = NewCategoryDialog(top_level_categories)
         if dlg.exec_():
-            category, created = get_or_create(models.Category,
-                                              session=s,
-                                              name=dlg.name.text())
+            category = models.Category(name=dlg.name.text())
             parent_category_idx = dlg.parent_category.currentIndex()
+
             if parent_category_idx > 0:
                 parent_category_item = dlg.combo_model.item(parent_category_idx)
                 category.parent_id = parent_category_item.category.id
-                s.add(category)
-                s.commit()
-            if created:
-                category_item = CategoryItem(category)
-                parent_category_item = self._find_parent_category(category)
-                parent_category_item.appendRow(category_item)
-            else:
-                msg = QtWidgets.QMessageBox(self)
-                msg.setIcon(QtWidgets.QMessageBox.Information)
-                msg.setWindowTitle('Category exists')
-                msg.setText(f'A category named "{category}" already exists.')
-                msg.exec_()
+            s.add(category)
+            s.commit()
+
+            category_item = CategoryItem(category)
+            parent_category_item = self._find_parent_category(category)
+            parent_category_item.appendRow(category_item)
 
     def new_document(self):
 
@@ -419,6 +453,56 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
 
             result = menu.exec_(self.authors_view.viewport().mapToGlobal(coords))
 
+    def _document_context_menu(self, coords: QtCore.QPoint):
+
+        selection = self.documents_view.selectedIndexes()
+        # row_idx = self.documents_model.index(index.row(), 0)
+        docs = [self.documents_model.itemData(
+            self.documents_model.index(index.row(), 0))[QtCore.Qt.UserRole]
+                for index in selection]
+
+        menu = QtWidgets.QMenu(self)
+        add_new_author = QtGui.QAction('Add new author')
+        add_new_author.triggered.connect(lambda _: self._add_new_author_to_docs(docs, selection))
+        menu.addAction(add_new_author)
+        add_existing_author = QtGui.QAction('Add existing author')
+        add_existing_author.triggered.connect(lambda _: self._add_existing_author_to_docs(docs, selection))
+        menu.addAction(add_existing_author)
+
+        if len(selection) > 0:
+            remove_authors = QtGui.QAction('Remove documents from library')
+            # remove_authors.triggered.connect(lambda _: self._remove_authors(selection))
+            menu.addAction(remove_authors)
+
+        result = menu.exec_(self.documents_view.viewport().mapToGlobal(coords))
+
+    def _add_new_author_to_docs(self, docs, doc_indices):
+
+        author = self.new_author()
+        if author:
+            s = get_session()
+            for doc, index in zip(docs, doc_indices):
+                doc.authors.append(author)
+                s.add(doc)
+                s.commit()
+
+                self._refresh_documents(doc, index, UpdateMode.UPDATE)
+
+    def _add_existing_author_to_docs(self, docs, doc_indices):
+
+        dlg = SelectAuthorDialog()
+        s = get_session()
+        if dlg.exec_():
+            selected_indexes = dlg.authors_view.selectedIndexes()
+            selected_authors = [dlg.authors_model.itemFromIndex(index).author for index in selected_indexes]
+            for doc, index in zip(docs, doc_indices):
+                for author in selected_authors:
+                    doc.authors.append(author)
+                    s.add(doc)
+                s.commit()
+
+                self._refresh_documents(doc, index, UpdateMode.UPDATE)
+
     def _remove_authors(self, selection):
 
         s = get_session()
@@ -441,3 +525,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
                 s.delete(author)
                 self._refresh_authors(author, idx, mode=UpdateMode.DELETE)
             s.commit()
+
+    def _next_or_previous(self, direction: NavDirection):
+
+        if self.selected_tab is not None:
+            if self.selected_tab in {self.MainTabType.Authors, self.MainTabType.Shelves, self.MainTabType.Documents}:
+                view, model = self.selected_tab_map[self.selected_tab]
+                idx = self.properties_scroll.widget().index
+                new_idx = model.index(idx.row() + direction.value, 0)
+                view.clearSelection()
+                view.setCurrentIndex(new_idx)
+                self._document_selected(new_idx)

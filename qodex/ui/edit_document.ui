@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>745</width>
+    <width>758</width>
     <height>938</height>
    </rect>
   </property>
@@ -269,6 +269,9 @@
       <widget class="QPushButton" name="save_button">
        <property name="text">
         <string>&amp;Save</string>
+       </property>
+       <property name="shortcut">
+        <string>Ctrl+S</string>
        </property>
       </widget>
      </item>
