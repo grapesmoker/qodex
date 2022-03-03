@@ -239,16 +239,10 @@
    <property name="text">
     <string>Selection</string>
    </property>
-   <property name="shortcut">
-    <string>Ctrl+R, S</string>
-   </property>
   </action>
   <action name="rename_all">
    <property name="text">
     <string>All</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+R, A</string>
    </property>
   </action>
   <action name="action_move_library">

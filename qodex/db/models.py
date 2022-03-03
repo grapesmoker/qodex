@@ -1,6 +1,6 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, ForeignKey, Sequence, Table, Date
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, ForeignKey, Sequence, Table, Date, Text
+from sqlalchemy.orm import relationship, deferred
 
 from qodex.db.settings import get_session
 
@@ -71,6 +71,9 @@ class Document(Base):
     doi = Column(String(), index=True)
     isbn = Column(String(), index=True)
     url = Column(String(), index=True)
+
+    full_text = deferred(Column(Text(), index=False))
+    page_count = Column(Integer(), index=True)
 
     def __str__(self):
 

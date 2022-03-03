@@ -1,5 +1,5 @@
 * Qodex Roadmap
-- [10/12] Document functions
+- [13/17] Document functions
   - [X] add existing authors to document
   - [X] view document in pdf viewer
   - [X] delete document from db
@@ -14,20 +14,21 @@
     - [X] rename all
     - [X] rename selection
   - [X] move library to location with progress bar
-    - [ ] move selected books only
+  - [ ] move selected books only
   - [X] attach category
-  - [ ] delete multiple docs
+  - [X] delete multiple docs
   - [ ] refresh multiple docs
   - [X] sort by column
-- [0/1] authors
-  - [ ] delete
-    - [ ] single author from view
-    - [ ] multiple authors
-  - [ ] refresh authors
+- [2/3] authors
+  - [X] delete
+    - [X] single author from view
+    - [X] multiple authors
+  - [X] refresh authors
+  - [ ] merge authors
 - [1/2] shelves
   - [X] add document to shelf
   - [ ] manage docs from shelf menu
-- [/] categories
+- [0/1] categories
   - [ ] add subcategories via context menu
 - [0/3] searches
   - [ ] search arxiv
@@ -35,11 +36,13 @@
   - [ ] ????
 - [0/1] bibliography
   - [ ] export bib entry
-- [0/4] features
+- [1/5] features
   - [ ] tags?
   - [ ] filters
   - [ ] settings?
-  - [ ] key shortcuts
+  - [X] key shortcuts
+  - [ ] double-click to navigate
+  - [ ] save parser regexes
 - [0/3] code quality
   - [ ] typechecks
   - [ ] reorganize dialogs

@@ -1,7 +1,9 @@
 import logging
+import os
+import re
+import tempfile
 from typing import Optional
 
-import fs
 from enum import Enum
 from pathlib import Path
 from logging import getLogger
@@ -22,6 +24,7 @@ from qodex.dialogs import (
 )
 from qodex.item_models import ShelfItem, AuthorItem, CategoryItem, DocumentItem
 from qodex.doctools.batch import RenameController, BulkMoveController, ImportController
+from qodex.doctools.pdf import convert_pdf_to_images, ocr_page_metadata
 
 logging.basicConfig(
     level='INFO', format='%(message)s', datefmt='[%X]', handlers=[RichHandler()]
@@ -69,6 +72,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
         self.rename_all.triggered.connect(self._bulk_rename_all)
         self.action_move_library.triggered.connect(self._move_library)
         self.splitter.setSizes([10000, 10000])
+
+        self._title_regex = "(?P<dash>-\\s+)(?P<title>.*)"
 
         self.action_forward.triggered.connect(lambda _: self._next_or_previous(self.NavDirection.Forward))
         self.action_backward.triggered.connect(lambda _: self._next_or_previous(self.NavDirection.Backward))
@@ -468,11 +473,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
         add_existing_author = QtGui.QAction('Add existing author')
         add_existing_author.triggered.connect(lambda _: self._add_existing_author_to_docs(docs, selection))
         menu.addAction(add_existing_author)
+        change_title_action = QtGui.QAction('Change title by regex')
+        change_title_action.triggered.connect(lambda _: self._change_title(docs, selection))
+        menu.addAction(change_title_action)
+        # ocr_action = QtGui.QAction('Extract data via OCR')
+        # ocr_action.triggered.connect(lambda _: self._ocr_docs(docs, selection))
+        # menu.addAction(ocr_action)
 
         if len(selection) > 0:
-            remove_authors = QtGui.QAction('Remove documents from library')
-            # remove_authors.triggered.connect(lambda _: self._remove_authors(selection))
-            menu.addAction(remove_authors)
+            remove_documents = QtGui.QAction('Remove documents from library')
+            remove_documents.triggered.connect(lambda _: self._remove_documents(selection))
+            menu.addAction(remove_documents)
 
         result = menu.exec_(self.documents_view.viewport().mapToGlobal(coords))
 
@@ -502,6 +513,72 @@ class MainWindow(QtWidgets.QMainWindow, Ui_QodexMain):
                 s.commit()
 
                 self._refresh_documents(doc, index, UpdateMode.UPDATE)
+
+    def _remove_documents(self, selection):
+
+        s = get_session()
+        selected_rows = sorted({selected.row() for selected in selection}, reverse=True)
+        docs_to_remove = []
+        indices_to_remove = []
+        for idx in selected_rows:
+            row_idx = self.documents_model.index(idx, 0)
+            doc_item = self.documents_model.itemData(row_idx)[QtCore.Qt.UserRole]
+            docs_to_remove.append(doc_item)
+            indices_to_remove.append(row_idx)
+
+        msg = 'Are you sure you want to remove the following documents? No files will be deleted.\n'
+        msg = msg + '\n'.join([str(doc) for doc in docs_to_remove])
+
+        really_delete = QtWidgets.QMessageBox.question(
+            self, 'Delete?', msg, QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+        if really_delete == QtWidgets.QMessageBox.Yes:
+            for idx, doc in zip(indices_to_remove, docs_to_remove):
+                s.delete(doc)
+                self._refresh_documents(doc, idx, mode=UpdateMode.DELETE)
+            s.commit()
+
+    def _ocr_docs(self, docs, selection):
+
+        curdir = Path(os.curdir).resolve()
+        tmpdir = Path(str(tempfile.mkdtemp(prefix='.', dir=curdir)))
+        pages = 3
+
+    def _change_title(self, docs, selection):
+
+        s = get_session()
+        title = 'Apply regex to title'
+        msg = "Enter the regular expression to apply to the title. Regex must have a named 'title' group."
+        pattern_string, ok = QtWidgets.QInputDialog.getText(
+            self, title, msg, QtWidgets.QLineEdit.Normal, self._title_regex)
+
+        try:
+            pattern = re.compile(pattern_string)
+        except Exception as ex:
+            msg = QtWidgets.QMessageBox(self)
+            msg.setIcon(QtWidgets.QMessageBox.Critical)
+            msg.setWindowTitle('Invalid pattern!')
+            msg.setText(f'You have have entered an invalid pattern: {pattern}: {ex}')
+            msg.exec_()
+            return
+
+        if ok:
+            self._title_regex = pattern_string
+            for doc, index in zip(docs, selection):
+                print(doc, pattern)
+                match = pattern.search(doc.title)
+                if match is not None:
+                    if 'title' not in match.groupdict():
+                        msg = QtWidgets.QMessageBox(self)
+                        msg.setIcon(QtWidgets.QMessageBox.Critical)
+                        msg.setWindowTitle('Title group missing!')
+                        msg.setText(f'You are missing a title group from your regular expression: {pattern.pattern}')
+                        msg.exec_()
+                        return
+                    new_title = match.groupdict()['title']
+                    doc.title = new_title
+                    s.add(doc)
+                    s.commit()
+                    self._refresh_documents(doc, index, UpdateMode.UPDATE)
 
     def _remove_authors(self, selection):
 

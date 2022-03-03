@@ -30,6 +30,8 @@ def upgrade():
     op.add_column('document', sa.Column('doi', sa.String(), nullable=True))
     op.add_column('document', sa.Column('isbn', sa.String(), nullable=True))
     op.add_column('document', sa.Column('url', sa.String(), nullable=True))
+    op.add_column('document', sa.Column('full_text', sa.Text(), nullable=True))
+    op.add_column('document', sa.Column('page_count', sa.Integer(), nullable=True))
     op.create_index(op.f('ix_document_abstract'), 'document', ['abstract'], unique=False)
     op.create_index(op.f('ix_document_date'), 'document', ['date'], unique=False)
     op.create_index(op.f('ix_document_doi'), 'document', ['doi'], unique=False)
@@ -42,6 +44,7 @@ def upgrade():
     op.create_index(op.f('ix_document_series'), 'document', ['series'], unique=False)
     op.create_index(op.f('ix_document_url'), 'document', ['url'], unique=False)
     op.create_index(op.f('ix_document_volume'), 'document', ['volume'], unique=False)
+    op.create_index(op.f('ix_document_page_count'), 'document', ['page_count'], unique=False)
     # ### end Alembic commands ###
 
 
@@ -71,4 +74,6 @@ def downgrade():
     op.drop_column('document', 'edition')
     op.drop_column('document', 'publication')
     op.drop_column('document', 'abstract')
+    op.drop_column('document', 'full_text')
+    op.drop_column('document', 'page_count')
     # ### end Alembic commands ###

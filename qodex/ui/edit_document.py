@@ -17,7 +17,7 @@ class Ui_EditDocument(object):
     def setupUi(self, EditDocument):
         if not EditDocument.objectName():
             EditDocument.setObjectName(u"EditDocument")
-        EditDocument.resize(745, 938)
+        EditDocument.resize(758, 938)
         self.verticalLayout = QVBoxLayout(EditDocument)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.tabWidget = QTabWidget(EditDocument)
@@ -62,7 +62,9 @@ class Ui_EditDocument(object):
         sizePolicy.setHeightForWidth(self.authors.sizePolicy().hasHeightForWidth())
         self.authors.setSizePolicy(sizePolicy)
         self.authors.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.authors.setSelectionMode(QAbstractItemView.MultiSelection)
+        self.authors.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.authors.setTabKeyNavigation(True)
+        self.authors.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.authors.setResizeMode(QListView.Adjust)
 
         self.formLayout_2.setWidget(2, QFormLayout.FieldRole, self.authors)
@@ -299,6 +301,9 @@ class Ui_EditDocument(object):
         self.label_13.setText(QCoreApplication.translate("EditDocument", u"Language", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.additional_meta_tab), QCoreApplication.translate("EditDocument", u"Additional metadata", None))
         self.save_button.setText(QCoreApplication.translate("EditDocument", u"&Save", None))
+#if QT_CONFIG(shortcut)
+        self.save_button.setShortcut(QCoreApplication.translate("EditDocument", u"Ctrl+S", None))
+#endif // QT_CONFIG(shortcut)
         self.update_meta_button.setText(QCoreApplication.translate("EditDocument", u"Refresh &Meta", None))
         self.rename_file_button.setText(QCoreApplication.translate("EditDocument", u"&Rename file", None))
         self.delete_button.setText(QCoreApplication.translate("EditDocument", u"&Delete", None))

@@ -419,10 +419,10 @@ class EditDocumentView(QtWidgets.QWidget, Ui_EditDocument):
 
         selection = self.authors.selectedIndexes()
         menu = QtWidgets.QMenu(self)
-        add_new_author = QtGui.QAction('Add new author')
+        add_new_author = QtGui.QAction('&Add new author')
         add_new_author.triggered.connect(lambda _: self.new_author.emit())
         menu.addAction(add_new_author)
-        add_existing_author = QtGui.QAction('Add existing author')
+        add_existing_author = QtGui.QAction('Add &existing author')
         add_existing_author.triggered.connect(self._add_existing_author)
         menu.addAction(add_existing_author)
 

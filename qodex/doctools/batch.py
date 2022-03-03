@@ -14,6 +14,7 @@ from rich.progress import Progress, BarColumn, TimeRemainingColumn
 from rich.logging import RichHandler
 from functools import partial
 
+import poppler
 import isbnlib
 from PySide6.QtCore import QObject, QThread, QMutex, Slot, Signal, QRunnable
 from crossref_commons.retrieval import get_publication_as_json
@@ -25,7 +26,7 @@ from qodex.doctools.pdf import extract_meta, isbn_parser, doi_parser
 from qodex.doctools.utils import rename
 from qodex.common import WorkerSignals
 
-from typing import List, Set, Iterable
+from typing import List, Set, Iterable, Union
 from multiprocessing import Pool
 from pathlib import Path
 from logging import getLogger
@@ -35,10 +36,10 @@ import shutil
 
 mutex = QMutex()
 logging.basicConfig(
-    level='DEBUG', format='%(message)s', datefmt='[%X]', handlers=[RichHandler(markup=True)]
+    level='INFO', format='%(message)s', datefmt='[%X]', handlers=[RichHandler(markup=True)]
 )
 logger = getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 logger.addHandler(RichHandler(markup=True))
 
 
@@ -289,46 +290,60 @@ class ImportController(QRunnable):
 
 class CLIImportController:
 
-    def __init__(self, import_path: Path, output_file: Path,
-                 pages: int = 10, processes: int = None, ocr_meta: bool = False):
+    def __init__(self, import_docs: Union[Path, List[Path]],
+                 pages: int = None,
+                 processes: int = None,
+                 ocr_meta: bool = False,
+                 ignore_current: bool = True,
+                 fulltext: bool = False,
+                 multiprocess: bool = True):
 
-        self._import_path = import_path
-        self._pdf_list = sorted(import_path.rglob('*.pdf'))
-        self._pages = pages
+        if isinstance(import_docs, Path):
+            self._import_path = import_docs
+            self._pdf_list = sorted(self._import_path.rglob('*.pdf'))
+        elif isinstance(import_docs, list):
+            s = get_session()
+            self._pdf_list = sorted(import_docs)
+
+        self._pages = pages or 0
         self._curdir = Path(os.curdir).resolve()
         self._tmpdir = Path(str(tempfile.mkdtemp(prefix='.', dir=self._curdir)))
         # tesseract runs 4 threads at a time
         self._processes = processes or multiprocessing.cpu_count()
-        self._output_file = output_file
-        self._output_file = output_file
         self._ocr_meta = ocr_meta
+        self._ignore_current = ignore_current
+        self._fulltext = fulltext
+        self._multiprocess = multiprocess
 
     @staticmethod
     def convert_pdf_to_images(pdf_path: Path, pages: int, tmpdir: Path):
 
         png_prefix = uuid4()
-        pdf_pages = f'{pdf_path}[0-{pages - 1}]'
-        args = ['convert',
-                '-density',
-                '300',
-                '-colorspace',
-                'Gray',
-                '-background',
-                'white',
-                '-alpha',
-                'off',
-                pdf_pages,
-                f'{tmpdir}/{png_prefix}.png']
+        for page_chunk in chunked(range(pages), 25):
+            page_start = page_chunk[0]
+            page_end = page_chunk[-1]
+            pdf_pages = f'{pdf_path}[{page_start}-{page_end}]'
+            args = ['convert',
+                    '-density',
+                    '300',
+                    '-colorspace',
+                    'Gray',
+                    '-background',
+                    'white',
+                    '-alpha',
+                    'off',
+                    pdf_pages,
+                    f'{tmpdir}/{png_prefix}.png']
 
-        result = subprocess.run(args, capture_output=True)
-        result.check_returncode()
+            result = subprocess.run(args, capture_output=True)
+            result.check_returncode()
 
         png_paths = [tmpdir / f'{png_prefix}-{i}.png' for i in range(pages)]
 
         return png_paths
 
     @staticmethod
-    def ocr_page_metadata(page_path: Path):
+    def ocr_page_metadata(page_path: Path, fulltext: bool):
 
         text_file = page_path.parent / page_path.name.replace('.png', '.txt')
         args = [
@@ -343,24 +358,30 @@ class CLIImportController:
         with open(text_file) as f:
             text = f.read()
         # text = pytesseract.image_to_string(Image.open(page_path))
-        isbn_results = isbn_parser.scan_string(text)
-        doi_results = doi_parser.scan_string(text)
+        meta = {'isbn-10': None, 'isbn-13': None, 'doi': None, 'full_text': None}
 
-        meta = {'isbn-10': None, 'isbn-13': None, 'doi': None}
-        for result in isbn_results:
-            parse_result = result[0]
-            isbn = parse_result.isbn.replace('-', '')
-            if len(isbn) == 13:
-                meta['isbn-13'] = isbn
-            elif len(isbn) == 10:
-                meta['isbn-10'] = isbn
+        if fulltext:
+            meta['full_text'] = text
+        else:
+            text = text.replace('\n', ' ').replace('\r', ' ')
+            isbn_results = isbn_parser.scan_string(text)
+            doi_results = doi_parser.scan_string(text)
 
-        for result in doi_results:
-            parse_result = result[0]
-            doi = parse_result.doi
-            meta['doi'] = doi
-            # only need one DOI
-            break
+            for result in isbn_results:
+                parse_result = result[0].isbn
+                isbn = ''.join([c for c in parse_result if c.isnumeric() or c == 'X' or c == 'x'])
+                # isbn = parse_result.isbn.replace('-', '').strip()
+                if len(isbn) == 13:
+                    meta['isbn-13'] = isbn
+                elif len(isbn) == 10:
+                    meta['isbn-10'] = isbn
+
+            for result in doi_results:
+                parse_result = result[0]
+                doi = parse_result.doi
+                meta['doi'] = doi
+                # only need one DOI
+                break
 
         return meta
 
@@ -375,10 +396,9 @@ class CLIImportController:
 
     def run(self):
 
-        pdf_list = CLIImportController._prune_existing_files(self._pdf_list)
-        # args = [(pdf, self._pages, self._tmpdir) for pdf in self._pdf_list]
+        pdf_list = CLIImportController._prune_existing_files(self._pdf_list) if self._ignore_current else self._pdf_list
         results = []
-        func = partial(CLIImportController.extract_meta, self._pages, self._tmpdir)
+        func = partial(CLIImportController.extract_meta, self._pages, self._tmpdir, self._fulltext)
         s = get_session()
 
         try:
@@ -387,28 +407,36 @@ class CLIImportController:
                           "{task.completed} of {task.total}",
                           TimeRemainingColumn()) as progress:
                 def update_progress(meta):
-                    doc = {'path': meta['path'],
-                           'isbn': meta['isbn-13'] or meta['isbn-10'],
-                           'doi': meta['doi'],
-                           'title': Path(meta['path']).stem}
-                    doc = Document(**doc)
+                    doc, _ = get_or_create(Document, s, path=meta['path'])
+                    doc.isbn = meta['isbn-13'] or meta['isbn-10']
+                    doc.doi = meta['doi']
+                    doc.title = doc.title or Path(meta['path'].stem)
+                    if self._fulltext:
+                        doc.full_text = meta['full_text']
+                        doc.page_count = meta['page_count']
                     s.add(doc)
                     s.commit()
+
                     progress.update(ocr_task, advance=1, description=f'[green]{Path(meta["path"]).name}')
 
                 logger.info(f'[green]Initiating metadata extraction via OCR of {len(pdf_list)} files.')
                 ocr_task = progress.add_task('[green]Extracting metadata...', total=len(pdf_list))
 
                 if self._ocr_meta:
-                    with Pool(processes=self._processes) as pool:
-                        futures = [pool.apply_async(func, (pdf, ), callback=update_progress)
-                                   for pdf in pdf_list]
-                        pool.close()
-                        pool.join()
+                    if self._multiprocess:
+                        with Pool(processes=self._processes) as pool:
+                            futures = [pool.apply_async(func, (pdf, ), callback=update_progress)
+                                       for pdf in pdf_list]
+                            pool.close()
+                            pool.join()
 
-                        for future in futures:
-                            result = future.get()
-                            results.append(result)
+                            for future in futures:
+                                result = future.get()
+                                results.append(result)
+                    else:
+                        for pdf in pdf_list:
+                            meta = func(pdf)
+                            update_progress(meta)
                 else:
                     logger.info(f'[green]Directly importing {len(pdf_list)} files without extracting metadata')
                     for pdf in pdf_list:
@@ -418,20 +446,30 @@ class CLIImportController:
         finally:
             shutil.rmtree(self._tmpdir)
 
-        with open(self._output_file, 'w') as f:
-            json.dump(results, f, indent=4)
-
     @staticmethod
-    def extract_meta(page_count, tmpdir, pdf: Path):
+    def extract_meta(page_count, tmpdir, fulltext: bool, pdf: Path):
 
-        result = {'path': str(pdf), 'isbn-10': None, 'isbn-13': None, 'doi': None}
         logger.debug(f'Converting {page_count} pages of {pdf} to images')
+        if fulltext and page_count == 0:
+            pdf_doc = poppler.load_from_file(str(pdf))
+            page_count = pdf_doc.pages
+
         pages = CLIImportController.convert_pdf_to_images(pdf, page_count, tmpdir)
+        result = {
+            'path': str(pdf),
+            'isbn-10': None,
+            'isbn-13': None,
+            'doi': None,
+            'full_text': '',
+            'page_count': page_count
+        }
 
         for i, page in enumerate(pages, start=1):
             logger.debug(f'Running OCR on page {i} of {pdf}')
-            meta = CLIImportController.ocr_page_metadata(page)
-            if meta['isbn-10'] is not None or meta['isbn-13'] is not None or meta['doi'] is not None:
+            meta = CLIImportController.ocr_page_metadata(page, fulltext)
+            if fulltext:
+                result['full_text'] += meta['full_text']
+            elif meta['isbn-10'] is not None or meta['isbn-13'] is not None or meta['doi'] is not None:
                 result.update(meta)
                 break
 
